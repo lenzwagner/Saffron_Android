@@ -709,6 +709,19 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     }
 
     /** Deletes a single match locally and notifies the partner so they remove it too. */
+    private suspend fun insertMatchIfNotToday(match: Match) {
+        val cal = java.util.Calendar.getInstance().apply {
+            set(java.util.Calendar.HOUR_OF_DAY, 0)
+            set(java.util.Calendar.MINUTE, 0)
+            set(java.util.Calendar.SECOND, 0)
+            set(java.util.Calendar.MILLISECOND, 0)
+        }
+        val dayStart = cal.timeInMillis
+        if (dao.countMatchesToday(match.partnerId, match.recipeUrl, dayStart) == 0) {
+            dao.insertMatch(match)
+        }
+    }
+
     fun clearMatch(match: Match) {
         viewModelScope.launch(Dispatchers.IO) {
             dao.deleteMatch(match)
@@ -1177,7 +1190,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                                     "timestamp" to com.google.firebase.Timestamp.now()
                                 ))
 
-                            // Save match locally
+                            // Save match locally (once per day per recipe+partner)
                             val match = Match(
                                 recipeTitle = recipe.title,
                                 recipeThumbnailUrl = recipe.thumbnailUrl,
@@ -1185,7 +1198,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                                 partnerName = friendName,
                                 recipeUrl = recipe.url
                             )
-                            dao.insertMatch(match)
+                            insertMatchIfNotToday(match)
 
                             // Adopt the recipe into my own collection (clickable forever)
                             adoptRecipeAsOwn(recipe.url, recipe.title, recipe.thumbnailUrl)
@@ -1340,7 +1353,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 partnerName = fromName,
                 recipeUrl = url
             )
-            dao.insertMatch(match)
+            insertMatchIfNotToday(match)
             // Adopt the matched recipe into my own collection so it stays clickable
             adoptRecipeAsOwn(url, title, thumb)
             

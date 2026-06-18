@@ -73,4 +73,7 @@ interface RecipeDao {
 
     @Query("DELETE FROM matches WHERE partnerId = :partnerId AND recipeUrl = :recipeUrl")
     suspend fun deleteMatchByPartnerAndUrl(partnerId: String, recipeUrl: String)
+
+    @Query("SELECT COUNT(*) FROM matches WHERE partnerId = :partnerId AND recipeUrl = :recipeUrl AND matchedAt >= :dayStart")
+    suspend fun countMatchesToday(partnerId: String, recipeUrl: String, dayStart: Long): Int
 }
