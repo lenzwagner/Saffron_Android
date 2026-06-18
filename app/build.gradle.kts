@@ -21,8 +21,8 @@ android {
         applicationId = "com.zephron.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 43
-        versionName = "4.7"
+        versionCode = 44
+        versionName = "4.8"
     }
 
     signingConfigs {
