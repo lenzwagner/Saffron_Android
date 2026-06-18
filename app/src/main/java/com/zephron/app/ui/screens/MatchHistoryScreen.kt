@@ -461,9 +461,9 @@ fun MatchHistoryScreen(
 
                     // Match cards
                     items(
-                        group.matches,
-                        key = { "${it.recipeUrl}_${it.partnerId}_${it.matchedAt}" }
-                    ) { match ->
+                        group.matches.mapIndexed { idx, m -> Pair(idx, m) },
+                        key = { (idx, m) -> "${m.recipeUrl}_${m.partnerId}_${m.matchedAt}_$idx" }
+                    ) { (_, match) ->
                         val matchKey = match.selectionKey()
                         val isSelected = matchKey in selectedKeys
 

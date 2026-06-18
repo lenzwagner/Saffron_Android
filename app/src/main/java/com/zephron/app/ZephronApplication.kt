@@ -47,7 +47,7 @@ class ZephronApplication : Application(), ImageLoaderFactory {
         return ImageLoader.Builder(this)
             .memoryCache {
                 MemoryCache.Builder(this)
-                    .maxSizePercent(0.25)   // 25 % of available RAM
+                    .maxSizePercent(0.35)   // 35 % of available RAM
                     .build()
             }
             .diskCache {
@@ -65,7 +65,7 @@ class ZephronApplication : Application(), ImageLoaderFactory {
             .components {
                 add(stableUrlKeyer)
             }
-            .crossfade(true)
+            .crossfade(150)
             .build()
     }
 }

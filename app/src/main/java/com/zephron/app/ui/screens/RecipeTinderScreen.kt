@@ -47,10 +47,12 @@ import androidx.graphics.shapes.Morph
 import androidx.graphics.shapes.RoundedPolygon
 import androidx.graphics.shapes.star
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.zephron.app.R
 import com.zephron.app.data.Recipe
 import com.zephron.app.ui.TAG_ICONS
 import com.zephron.app.ui.theme.LocalAppColors
+import com.zephron.app.utils.ImagePreloader
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -73,6 +75,13 @@ fun RecipeTinderScreen(
 
     val currentRecipe = recipes.getOrNull(0)
     val nextRecipe    = recipes.getOrNull(1)
+
+    // Preload next 5 thumbnails whenever the stack changes
+    val context = androidx.compose.ui.platform.LocalContext.current
+    LaunchedEffect(recipes) {
+        val urls = recipes.take(5).map { it.thumbnailUrl }.filter { it.isNotBlank() }
+        ImagePreloader.preload(context, urls)
+    }
 
     var undoStack by remember { mutableStateOf<List<Recipe>>(emptyList()) }
     var showMatchOverlay by remember { mutableStateOf<Recipe?>(null) }
@@ -503,8 +512,13 @@ private fun TinderCard(
         Box(modifier = Modifier.fillMaxSize()) {
             // Image
             if (recipe.thumbnailUrl.isNotBlank()) {
+                val ctx = androidx.compose.ui.platform.LocalContext.current
                 AsyncImage(
-                    model = recipe.thumbnailUrl,
+                    model = ImageRequest.Builder(ctx)
+                        .data(recipe.thumbnailUrl)
+                        .memoryCacheKey(recipe.thumbnailUrl)
+                        .crossfade(false)
+                        .build(),
                     contentDescription = recipe.title,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()

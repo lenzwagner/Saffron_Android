@@ -8,12 +8,15 @@ import com.google.gson.reflect.TypeToken
 import com.zephron.app.data.Recipe
 import com.zephron.app.data.RecipeDatabase
 import com.zephron.app.data.RecipeRepository
+import com.zephron.app.utils.ImagePreloader
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -139,6 +142,18 @@ class RecipeViewModel(application: Application) : AndroidViewModel(application) 
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = emptyList()
     )
+
+    init {
+        // Preload thumbnails into Coil memory cache whenever the recipe list changes
+        viewModelScope.launch {
+            repository.allRecipes
+                .map { list -> list.map { it.thumbnailUrl }.filter { it.isNotBlank() } }
+                .distinctUntilChanged()
+                .collect { urls ->
+                    ImagePreloader.preload(getApplication(), urls, limit = 30)
+                }
+        }
+    }
 
 
     fun deleteRecipe(recipe: Recipe) {

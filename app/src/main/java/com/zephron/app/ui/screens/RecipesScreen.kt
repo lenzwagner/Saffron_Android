@@ -127,6 +127,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.zephron.app.R
 import com.zephron.app.data.Recipe
 import com.zephron.app.ui.ExpressiveCheckbox
@@ -948,14 +949,19 @@ private fun RecipeGridCard(
         Box {
             Column {
                 if (recipe.thumbnailUrl.isNotBlank()) {
+                    val ctx = androidx.compose.ui.platform.LocalContext.current
                     AsyncImage(
-                        model = recipe.thumbnailUrl,
+                        model = ImageRequest.Builder(ctx)
+                            .data(recipe.thumbnailUrl)
+                            .memoryCacheKey(recipe.thumbnailUrl)
+                            .crossfade(false)
+                            .build(),
                         contentDescription = recipe.title,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(120.dp)
-                            .clip(expressiveShape) // Clip image to the same expressive shape
+                            .clip(expressiveShape)
                     )
                 } else {
                     Box(
