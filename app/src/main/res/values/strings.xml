@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App -->
+    <string name="app_name">Saffron</string>
+    <string name="app_slogan">Collect what you crave.</string>
+
+    <!-- Bottom navigation -->
+    <string name="tab_today">Today</string>
+    <string name="tab_tinder">Crave</string>
+    <string name="tab_recipes">Recipes</string>
+    <string name="tab_import">Import</string>
+
+    <!-- Login screen -->
+    <string name="login_save_from_anywhere">Save recipes from anywhere</string>
+    <string name="login_get_started">Get started</string>
+    <string name="login_continue_google">Continue with Google</string>
+    <string name="login_or">or</string>
+    <string name="login_continue_guest">Continue as Guest</string>
+    <string name="login_error_unexpected">Unexpected credential type</string>
+    <string name="login_error_no_account">No Google account found on this device</string>
+    <string name="login_error_sign_in_failed">Sign-in failed. Please try again.</string>
+
+    <!-- Onboarding screen -->
+    <string name="onboarding_welcome">Welcome to Saffron</string>
+    <string name="onboarding_personalise">Let\'s personalise your experience</string>
+    <string name="onboarding_name_question">What\'s your name?</string>
+    <string name="onboarding_name_placeholder"></string>
+    <string name="onboarding_mode_question">How do you like it?</string>
+    <string name="onboarding_mode_light">Light</string>
+    <string name="onboarding_mode_dark">Dark</string>
+    <string name="onboarding_cta">Let\'s go</string>
+
+    <!-- Settings screen -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_back">Back</string>
+    <string name="settings_your_profile">Your profile</string>
+    <string name="settings_add_name">Add your name</string>
+    <string name="settings_hi_name">Hi, %s!</string>
+    <string name="settings_your_name">Your name</string>
+    <string name="settings_name_placeholder"></string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_dark_mode">Dark mode</string>
+    <string name="settings_mode_system">System</string>
+    <string name="settings_mode_light">Light</string>
+    <string name="settings_mode_dark">Dark</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_language_system">System</string>
+    <string name="settings_language_english">English</string>
+    <string name="settings_language_german">Deutsch</string>
+
+    <!-- Today / Recipe of day screen -->
+    <string name="today_picks_subtitle">Your picks for today</string>
+    <string name="today_shuffle">Shuffle picks</string>
+    <string name="today_vegetarian_pick">Vegetarisch</string>
+    <string name="today_meat_pick">Nicht Vegetarisch</string>
+    <string name="today_no_recipes">No recipes yet</string>
+    <string name="today_import_hint">Import some recipes to see your daily picks here!</string>
+
+    <!-- Recipes screen -->
+    <string name="recipes_title">Recipes</string>
+    <string name="recipes_search_title">Search recipes…</string>
+    <string name="recipes_search_ingredients">e.g. chicken, pasta…</string>
+    <string name="recipes_filter_title_mode">Title</string>
+    <string name="recipes_filter_ingredients_mode">Ingredients</string>
+    <string name="recipes_filter_cuisine_mode">Cuisine</string>
+    <string name="recipes_search_cuisine">e.g. Italian, Asian…</string>
+    <string name="recipes_no_recipes">No recipes yet</string>
+    <string name="recipes_no_match">No recipes match these filters</string>
+    <string name="recipes_import_hint">Import one from the Import tab</string>
+    <string name="recipes_clear_filters">Clear filters</string>
+    <string name="recipes_clear_all">Clear all</string>
+    <string name="recipes_selected">%d selected</string>
+    <string name="recipes_select_all">Select all</string>
+    <string name="recipes_delete_selected">Delete selected</string>
+    <string name="recipes_cancel">Cancel</string>
+    <string name="recipes_filter_label">Filter</string>
+    <string name="recipes_filter_clear">Clear</string>
+    <string name="recipes_filter_done">Done</string>
+    <string name="recipes_filter_done_count">Done (%d)</string>
+    <string name="recipes_cook_time">Kochzeit</string>
+    <string name="recipes_cook_time_any">Any</string>
+    <string name="recipes_cook_time_15">≤15 min</string>
+    <string name="recipes_cook_time_30">≤30 min</string>
+    <string name="recipes_cook_time_60">≤60 min</string>
+    <string name="recipes_cook_time_max">≤%d min</string>
+    <string name="recipes_this_cannot_undone">This cannot be undone.</string>
+    <string name="recipes_delete">Delete</string>
+    <plurals name="recipes_delete_count">
+        <item quantity="one">Delete %d recipe?</item>
+        <item quantity="other">Delete %d recipes?</item>
+    </plurals>
+
+    <!-- Import screen -->
+    <string name="import_title">Import</string>
+    <string name="import_recipe_heading">Import Recipe</string>
+    <string name="import_recipe_subtitle">Paste an Instagram or TikTok link</string>
+    <string name="import_url_label">Recipe URL</string>
+    <string name="import_fetching">Fetching…</string>
+    <string name="import_button">Import</string>
+    <string name="import_title_label">Title</string>
+    <string name="import_vegetarian">• Vegetarian</string>
+    <string name="import_servings">Servings</string>
+    <string name="import_tags">Tags</string>
+    <string name="import_done">Done</string>
+    <string name="import_edit">Edit</string>
+    <string name="import_save">Save Recipe</string>
+    <string name="import_saved_title">Recipe Saved!</string>
+    <string name="import_saved_body">Your recipe has been added to your library.</string>
+    <string name="import_show_similar">Show similar recipes</string>
+    <string name="import_another">Import Another</string>
+    <string name="import_export_links">Export Links</string>
+    <string name="import_mode_single">Single</string>
+    <string name="import_mode_multi">Multiple</string>
+    <string name="import_batch_label">Links (one per line)</string>
+    <string name="import_batch_count">%d links detected</string>
+    <string name="import_batch_button">Import All</string>
+    <string name="import_batch_heading">Import Multiple Links</string>
+    <string name="import_batch_subtitle">Paste one URL per line</string>
+    <string name="import_batch_progress">Importing %1$d of %2$d…</string>
+    <string name="import_batch_done">Import complete</string>
+    <string name="import_batch_imported">%d imported</string>
+    <string name="import_batch_skipped">%d already in library</string>
+    <string name="import_batch_failed">%d failed</string>
+    <string name="import_queue_progress">Recipe %1$d of %2$d</string>
+    <string name="import_queue_save_next">Save &amp; Next</string>
+    <string name="import_queue_skip">Skip</string>
+    <string name="import_queue_cancel">Cancel import</string>
+    <string name="import_queue_fetching">Loading recipe %1$d of %2$d…</string>
+
+    <!-- Recipe detail screen -->
+    <string name="detail_back">Back</string>
+    <string name="detail_delete">Delete recipe</string>
+    <string name="detail_vegetarian">Vegetarian</string>
+    <string name="detail_ingredients">Ingredients</string>
+    <string name="detail_servings">%d Servings</string>
+    <string name="detail_set_time">Set time</string>
+    <string name="detail_set_cook_time">Set cook time</string>
+    <string name="detail_cook_time_min">%d min</string>
+    <string name="detail_recipe_in_video">Recipe in the video</string>
+    <string name="detail_video_hint">Open the source link below to watch the full recipe.</string>
+    <string name="detail_recipe_section">Recipe</string>
+    <string name="detail_no_instructions">No instructions available</string>
+    <string name="detail_instructions_hint">Import a recipe with a caption to see the full instructions here.</string>
+    <string name="detail_open_instagram">Open in Instagram</string>
+    <string name="detail_open_tiktok">Open in TikTok</string>
+    <string name="detail_open_source">Open Source</string>
+    <string name="detail_delete_dialog_title">Delete recipe?</string>
+    <string name="detail_delete_dialog_body">\"%s\" will be permanently removed.</string>
+    <string name="detail_delete_confirm">Delete</string>
+    <string name="detail_cancel">Cancel</string>
+    <string name="detail_cook_time_dialog">Cook time</string>
+    <string name="detail_clear">Clear</string>
+    <string name="detail_edit_tags">Edit tags</string>
+    <string name="detail_save_tags">Save</string>
+    <string name="detail_add_tags">Add tags</string>
+    <string name="detail_save_title">Save title</string>
+    <string name="detail_edit_ingredients">Edit ingredients</string>
+    <string name="detail_add_ingredient">Add ingredient</string>
+    <string name="detail_edit_steps">Edit steps</string>
+    <string name="detail_add_step">Add step</string>
+    <string name="detail_step_label">Step %d</string>
+    <string name="detail_no_steps">No steps yet</string>
+    <string name="detail_no_steps_hint">Tap the edit icon to add cooking steps.</string>
+    <string name="detail_step_time">%d min</string>
+
+    <!-- Crave (swipe) -->
+    <string name="crave_tab_swipe">Swipe</string>
+    <string name="crave_tab_matches">Matches</string>
+    <string name="crave_tab_friends">Friends</string>
+    <string name="crave_pick_friend">Choose friend</string>
+    <string name="crave_no_friends">No friends yet</string>
+    <string name="crave_sync">Sync</string>
+    <string name="crave_reset_swipes">Reset swipes</string>
+    <string name="crave_request_sent">Request sent</string>
+    <string name="crave_request_invalid">Invalid ID or already friends</string>
+    <string name="crave_undo">Undo</string>
+    <string name="crave_close">Close</string>
+    <string name="crave_keep_swiping">Keep swiping</string>
+    <string name="crave_done_today">That\'s it for today!</string>
+    <string name="crave_done_today_sub">You\'ve seen all recipes.</string>
+    <string name="crave_restart">Start over</string>
+    <string name="crave_no_recipes">No recipes yet</string>
+    <string name="crave_no_recipes_sub">Import some recipes to start swiping!</string>
+    <string name="crave_match_title">It\'s a Match!</string>
+    <string name="crave_match_cook">You both want to cook „%1$s“!</string>
+    <string name="matches_empty">No matches yet. Keep swiping!</string>
+    <string name="match_with">Match with %1$s</string>
+    <string name="matches_clear">Clear</string>
+    <string name="matches_clear_title">Delete match history?</string>
+    <string name="matches_filter_all">All</string>
+    <string-array name="crave_match_puns">
+        <item>Two hearts, one cooking pot! 🍲</item>
+        <item>You go together like pasta &amp; parmesan! 🧀</item>
+        <item>A match as hot as fresh pizza! 🍕</item>
+        <item>Together it just tastes better! 😋</item>
+        <item>Perfectly seasoned – this\'ll be delicious! 🌶️</item>
+        <item>Sweet like dessert for two! 🍰</item>
+        <item>You\'re the salt in the soup! 🧂</item>
+        <item>The way to the heart is through the stomach! 🍴</item>
+    </string-array>
+
+    <!-- Friends -->
+    <string name="friends_connect_title">Connect friends</string>
+    <string name="friends_connect_sub">Share recipes with others</string>
+    <string name="friends_open_requests">Open requests</string>
+    <string name="friends_wants_connect">wants to connect</string>
+    <string name="friends_share_hint">Share your ID with a friend or enter theirs below to see each other\'s recipes in Crave.</string>
+    <string name="friends_id_copied">ID copied!</string>
+    <string name="friends_your_id">Your ID</string>
+    <string name="friends_share_text">Connect with me on Zephron! My friend ID: %1$s</string>
+    <string name="friends_share_id">Share ID</string>
+    <string name="friends_friend_id">Friend ID</string>
+    <string name="friends_request_button">Request</string>
+    <string name="friends_connected">Connected friends</string>
+
+    <!-- Settings: colors -->
+    <string name="settings_colors">Colors</string>
+    <string name="settings_colors_sub">Accent &amp; secondary color</string>
+    <string name="settings_accent_color">Accent color</string>
+    <string name="settings_accent_sub">Buttons, filters, badges</string>
+    <string name="settings_secondary_color">Secondary color</string>
+    <string name="settings_secondary_sub">Vegetarian label in the carousel</string>
+    <string name="settings_restart_app">Restart app</string>
+    <string name="settings_restart_hint">Changes are applied after restarting.</string>
+    <string name="settings_show">Show</string>
+    <string name="settings_hide">Hide</string>
+
+    <!-- Recipes filter -->
+    <string name="recipes_min_rating">Minimum rating</string>
+    <string name="recipes_all">All</string>
+    <string name="recipes_favorites_only">Favorites</string>
+
+    <!-- Favorites &amp; portions -->
+    <string name="favorite_toggle">Bookmark</string>
+
+    <!-- Cooking assistant -->
+    <string name="assistant_title">Cooking assistant</string>
+    <string name="assistant_open">Cooking assistant</string>
+    <string name="assistant_placeholder">Ask something…</string>
+    <string name="assistant_remaining">%1$d questions left today</string>
+    <string name="assistant_limit_reached">Daily limit reached</string>
+    <string name="assistant_clear">Clear chat</string>
+    <string name="assistant_send">Send</string>
+    <string name="assistant_empty">Ask me anything about cooking — ingredient swaps, calories, techniques, leftovers…</string>
+
+    <!-- Weekly plan -->
+    <string name="tab_plan">Plan</string>
+    <string name="plan_pick_friend">Choose friend</string>
+    <string name="plan_pick_friend_hint">Choose a friend to share a weekly meal plan.</string>
+    <string name="plan_no_friends">No friends yet</string>
+    <string name="plan_add">Add</string>
+    <string name="plan_empty_day">Nothing planned</string>
+    <string name="plan_picker_title">Add recipe</string>
+    <string name="plan_search">Search recipe…</string>
+    <string name="plan_day_mon">Monday</string>
+    <string name="plan_day_tue">Tuesday</string>
+    <string name="plan_day_wed">Wednesday</string>
+    <string name="plan_day_thu">Thursday</string>
+    <string name="plan_day_fri">Friday</string>
+    <string name="plan_day_sat">Saturday</string>
+    <string name="plan_day_sun">Sunday</string>
+    <string name="detail_servings_less">Fewer servings</string>
+    <string name="detail_servings_more">More servings</string>
+
+    <!-- Import extras -->
+    <string name="import_mode_manual">Manual</string>
+    <string name="import_mode_auto">Auto</string>
+    <string name="import_not_imported">Not imported (%1$d)</string>
+    <string name="import_copy_urls">Copy URLs</string>
+    <string name="import_copied">Copied ✓</string>
+    <string name="import_discard">Discard</string>
+    <string name="import_pick_image_hint">Tap an image to select it</string>
+    <string name="import_ingredients_count">%1$d ingredients</string>
+    <string name="import_steps_count"> · %1$d steps</string>
+</resources>

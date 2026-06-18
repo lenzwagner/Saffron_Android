@@ -1,0 +1,23 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="2048"
+    android:viewportHeight="2048">
+
+    <!-- We center the symbol in a 2048x2048 viewport -->
+    <group android:translateY="57">
+        <!-- Light contrast shape (#FDF2EA) - the main symbol body -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="m1010 594h12l25 4 23 6 32 11 20 10 12 8 14 11 10 9 15 14 8 9 7 11 3 7 2 7 4 1h19l5 2 17 3 24 9 17 9 15 10 11 9 13 12 10 12 12 18 11 21 8 22 5 19 1 9v35l-3 18-7 25-8 19-10 17-10 14-23 23-15 11-14 9-14 5-1 196-4 17-9 16-10 14-7 7-10 7-7 3-18 1-108 1h-43l-190 1-24-1-11-2-16-9-10-8-8-9-8-13-5-12-3-19-1-85v-32l1-32v-24l-1-13-1-5-10-3-19-10-14-11-14-14-13-17-9-15-8-16-6-14-6-20-4-19-1-10v-15l4-23 6-21 8-19 11-23 8-11 11-14 16-16 16-12 21-12 15-7 15-5 14-4h10l11 3 8-9 9-16 12-14 12-11 15-13 16-12 16-9 12-6 19-7 27-8 15-3z" />
+
+        <!-- Internal accents -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="m1000 665h26l25 4 18 7 18 10 13 10 13 12 12 16 14 22 13 18 2 2 5 2 12 1h6l2 1 17 1 3-1 15 3 21 9 13 8 13 11 8 7 8 11 7 16 6 16 3 16v14l-1 11-7 24-9 17-12 14-14 11-14 10-14 12-11 9-9 11-6 9-6 12-1 4-1 24v17l-1 20-266 1h-63l-18-1-1-1-1-7-2-36-2-20-5-16-14-17-8-7-16-12-17-13-11-8-8-8-11-17-7-15-5-19-1-6v-12l3-19 8-24 7-13 8-10 13-13 10-7 12-7 15-5 15-3 26-2h12l5 1 7-2 2-5 11-17 9-14 8-11 11-18 13-12 8-5 18-8 11-6 6-3 22-3z" />
+
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="m923 1154h217l49 1v56l-1 15h-347l-1-3v-68z" />
+    </group>
+</vector>

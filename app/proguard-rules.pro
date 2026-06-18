@@ -1,0 +1,10 @@
+-keep class com.zephron.app.data.** { *; }
+-keep class com.zephron.app.network.** { *; }
+-keepattributes Signature
+-keepattributes *Annotation*
+-dontwarn okhttp3.**
+-dontwarn okio.**
+-dontwarn javax.annotation.**
+-keep class okhttp3.** { *; }
+-keep class org.jsoup.** { *; }
+-keep class com.google.gson.** { *; }

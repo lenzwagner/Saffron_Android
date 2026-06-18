@@ -1,0 +1,32 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="288dp"
+    android:height="288dp"
+    android:viewportWidth="288"
+    android:viewportHeight="288">
+    <!-- Background Circle with Gradient -->
+    <path
+        android:pathData="M144,144m-144,0a144,144 0,1,1 288,0a144,144 0,1,1 -288,0">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startY="0"
+                android:endY="288"
+                android:startX="144"
+                android:endX="144"
+                android:type="linear">
+                <item android:offset="0" android:color="#F4896B" />
+                <item android:offset="1" android:color="#D4522A" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <!-- Foreground Icon (scaled and centered) -->
+    <group
+        android:translateX="36"
+        android:translateY="36"
+        android:scaleX="9"
+        android:scaleY="9">
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M1 11V9h2.475q0.85-2.425 2.863-4.05T11 3.025V2h2v1.025q2.625 0.3 4.638 1.925T20.5 9H23v2zm7 10v-8h6.8q0.35 0 0.6 0.2t0.35 0.475t0.038 0.575t-0.338 0.525L13.975 16H10v1.5h4.5l4.05-3.35q0.55-0.4 1.163-0.5t1.212 0.05t1.138 0.513t0.912 0.937l-7 5.85zm-6 1v-9h4v9z" />
+    </group>
+</vector>

@@ -1,0 +1,18 @@
+rules_version = '2';
+
+// Firebase Storage security rules for Saffron.
+//
+// Deploy with:
+//   firebase deploy --only storage
+//
+// Structure: users/{uid}/recipes/{docId}.jpg
+//   - Owner: full read + write
+//   - Any signed-in user: read (needed so partners can see each other's recipe images)
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /users/{userId}/recipes/{fileName} {
+      allow read:  if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
