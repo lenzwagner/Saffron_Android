@@ -9,8 +9,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.pager.HorizontalPager
@@ -49,6 +49,7 @@ import com.google.gson.Gson
 import com.zephron.app.R
 import com.zephron.app.ui.PartnerAvatar
 import com.zephron.app.ui.TAG_GROUPS
+import com.zephron.app.ui.TAG_ICONS
 import com.zephron.app.data.Recipe
 import com.zephron.app.viewmodel.BatchImportState
 import com.zephron.app.viewmodel.ImportViewModel
@@ -65,6 +66,7 @@ data class NavItem(
     val unselectedIcon: ImageVector
 )
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun MainScreen(
     recipeViewModel: RecipeViewModel = viewModel(),
@@ -485,7 +487,8 @@ fun MainScreen(
                                         allKnownTags.filter { it in present }
                                     }
                                     var selectedCraveTags by remember { mutableStateOf<Set<String>>(emptySet()) }
-                                    var showCuisineFilter by remember { mutableStateOf(false) }
+                                    var showCraveFilterSheet by remember { mutableStateOf(false) }
+                                    val craveSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
                                     LaunchedEffect(availableTags) {
                                         selectedCraveTags = selectedCraveTags.filter { it in availableTags }.toSet()
                                     }
@@ -502,46 +505,96 @@ fun MainScreen(
                                             accent = orange,
                                             onSelect = { settingsViewModel.setCravePartner(it) },
                                             onSync = { settingsViewModel.syncCravePartner() },
-                                            onFilterClick = { showCuisineFilter = !showCuisineFilter },
+                                            onFilterClick = { showCraveFilterSheet = true },
                                             filterActive = selectedCraveTags.isNotEmpty()
                                         )
                                     }
 
-                                    // ── Tag filter chips (collapsible) ────────────────────
-                                    androidx.compose.animation.AnimatedVisibility(
-                                        visible = selectedTinderTab == 0 && showCuisineFilter && availableTags.isNotEmpty(),
-                                        enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(),
-                                        exit = androidx.compose.animation.shrinkVertically() + androidx.compose.animation.fadeOut()
-                                    ) {
-                                        LazyRow(
-                                            contentPadding = PaddingValues(horizontal = 16.dp),
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                                    // ── Tag filter sheet ──────────────────────────────────
+                                    if (showCraveFilterSheet) {
+                                        val sheetHeight = (LocalConfiguration.current.screenHeightDp * 0.70f).dp
+                                        val dismiss = { coroutineScope.launch { craveSheetState.hide() }.invokeOnCompletion { showCraveFilterSheet = false } }
+                                        ModalBottomSheet(
+                                            onDismissRequest = { showCraveFilterSheet = false },
+                                            sheetState = craveSheetState,
+                                            containerColor = MaterialTheme.colorScheme.surface
                                         ) {
-                                            item {
-                                                FilterChip(
-                                                    selected = selectedCraveTags.isEmpty(),
-                                                    onClick = { selectedCraveTags = emptySet() },
-                                                    label = { Text("🍽️ Alle") },
-                                                    colors = FilterChipDefaults.filterChipColors(
-                                                        selectedContainerColor = orange,
-                                                        selectedLabelColor = Color.White
+                                            Column(modifier = Modifier.fillMaxWidth().height(sheetHeight)) {
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth()
+                                                        .padding(start = 20.dp, end = 12.dp, top = 4.dp, bottom = 8.dp),
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Text(
+                                                        text = "Filter",
+                                                        style = MaterialTheme.typography.titleLarge,
+                                                        fontWeight = FontWeight.Bold,
+                                                        modifier = Modifier.weight(1f)
                                                     )
-                                                )
-                                            }
-                                            items(availableTags) { tag ->
-                                                FilterChip(
-                                                    selected = tag in selectedCraveTags,
-                                                    onClick = {
-                                                        selectedCraveTags = if (tag in selectedCraveTags)
-                                                            selectedCraveTags - tag else selectedCraveTags + tag
-                                                    },
-                                                    label = { Text("${cuisineEmoji(tag)} $tag") },
-                                                    colors = FilterChipDefaults.filterChipColors(
-                                                        selectedContainerColor = orange,
-                                                        selectedLabelColor = Color.White
-                                                    )
-                                                )
+                                                    if (selectedCraveTags.isNotEmpty()) {
+                                                        TextButton(onClick = { selectedCraveTags = emptySet() }) {
+                                                            Text("Zurücksetzen", color = LocalAppColors.current.secondary)
+                                                        }
+                                                    }
+                                                    Button(
+                                                        onClick = { dismiss() },
+                                                        shape = RoundedCornerShape(12.dp),
+                                                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                                                        colors = ButtonDefaults.buttonColors(containerColor = orange)
+                                                    ) {
+                                                        Text(
+                                                            text = if (selectedCraveTags.isEmpty()) "Fertig" else "Fertig (${selectedCraveTags.size})",
+                                                            fontWeight = FontWeight.SemiBold,
+                                                            fontSize = 14.sp
+                                                        )
+                                                    }
+                                                }
+                                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                                                val filterScroll = rememberScrollState()
+                                                Column(
+                                                    modifier = Modifier
+                                                        .weight(1f)
+                                                        .verticalScroll(filterScroll)
+                                                        .padding(horizontal = 20.dp, vertical = 12.dp)
+                                                        .windowInsetsPadding(WindowInsets.navigationBars)
+                                                ) {
+                                                    TAG_GROUPS.forEach { (groupName, tags) ->
+                                                        Text(
+                                                            text = groupName.uppercase(),
+                                                            style = MaterialTheme.typography.labelLarge,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                            fontWeight = FontWeight.SemiBold,
+                                                            modifier = Modifier.padding(bottom = 8.dp)
+                                                        )
+                                                        FlowRow(
+                                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                                                            modifier = Modifier.padding(bottom = 16.dp)
+                                                        ) {
+                                                            tags.forEach { tag ->
+                                                                val icon = TAG_ICONS[tag]
+                                                                FilterChip(
+                                                                    selected = tag in selectedCraveTags,
+                                                                    onClick = {
+                                                                        selectedCraveTags = if (tag in selectedCraveTags)
+                                                                            selectedCraveTags - tag else selectedCraveTags + tag
+                                                                    },
+                                                                    label = { Text(tag) },
+                                                                    leadingIcon = icon?.let { { Icon(it, null, Modifier.size(16.dp)) } },
+                                                                    colors = FilterChipDefaults.filterChipColors(
+                                                                        selectedContainerColor = LocalAppColors.current.secondary,
+                                                                        selectedLabelColor = Color.White,
+                                                                        selectedLeadingIconColor = Color.White
+                                                                    )
+                                                                )
+                                                            }
+                                                        }
+                                                        HorizontalDivider(
+                                                            modifier = Modifier.padding(bottom = 16.dp),
+                                                            color = MaterialTheme.colorScheme.outlineVariant
+                                                        )
+                                                    }
+                                                }
                                             }
                                         }
                                     }
