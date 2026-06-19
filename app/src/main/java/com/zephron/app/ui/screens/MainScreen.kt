@@ -127,6 +127,7 @@ fun MainScreen(
     val batchState by importViewModel.batchState.collectAsState()
     val batchInputText by importViewModel.batchInputText.collectAsState()
     val isBatchTab by importViewModel.isBatchTab.collectAsState()
+    val isManualTab by importViewModel.isManualTab.collectAsState()
     val pendingSharedUrl by importViewModel.pendingSharedUrl.collectAsState()
     val userName by settingsViewModel.userName.collectAsState()
     val friends by settingsViewModel.friends.collectAsState()
@@ -470,10 +471,10 @@ fun MainScreen(
                                     val craveEligible = allRecipes.filter {
                                         it.ownerId == myUid || (cravePartnerId != null && it.ownerId == cravePartnerId)
                                     }
-                                    val knownCuisines = remember {
-                                        TAG_GROUPS.firstOrNull { it.first == "Küche" }?.second ?: emptyList()
+                                    val allKnownTags = remember {
+                                        TAG_GROUPS.flatMap { it.second }
                                     }
-                                    val availableCuisines = remember(craveEligible) {
+                                    val availableTags = remember(craveEligible) {
                                         val present = craveEligible.flatMap { recipe ->
                                             try {
                                                 val gson = com.google.gson.Gson()
@@ -481,13 +482,12 @@ fun MainScreen(
                                                 gson.fromJson<List<String>>(recipe.tags, type) ?: emptyList()
                                             } catch (_: Exception) { emptyList() }
                                         }.toSet()
-                                        knownCuisines.filter { it in present }
+                                        allKnownTags.filter { it in present }
                                     }
-                                    var selectedCuisine by remember { mutableStateOf<String?>(null) }
+                                    var selectedCraveTags by remember { mutableStateOf<Set<String>>(emptySet()) }
                                     var showCuisineFilter by remember { mutableStateOf(false) }
-                                    // Reset cuisine filter if it no longer exists in eligible recipes
-                                    LaunchedEffect(availableCuisines) {
-                                        if (selectedCuisine != null && selectedCuisine !in availableCuisines) selectedCuisine = null
+                                    LaunchedEffect(availableTags) {
+                                        selectedCraveTags = selectedCraveTags.filter { it in availableTags }.toSet()
                                     }
 
                                     // ── Partner picker + sync (only on the Swipe tab) ─────
@@ -503,13 +503,13 @@ fun MainScreen(
                                             onSelect = { settingsViewModel.setCravePartner(it) },
                                             onSync = { settingsViewModel.syncCravePartner() },
                                             onFilterClick = { showCuisineFilter = !showCuisineFilter },
-                                            filterActive = selectedCuisine != null
+                                            filterActive = selectedCraveTags.isNotEmpty()
                                         )
                                     }
 
-                                    // ── Cuisine filter chips (collapsible) ────────────────
+                                    // ── Tag filter chips (collapsible) ────────────────────
                                     androidx.compose.animation.AnimatedVisibility(
-                                        visible = selectedTinderTab == 0 && showCuisineFilter && availableCuisines.isNotEmpty(),
+                                        visible = selectedTinderTab == 0 && showCuisineFilter && availableTags.isNotEmpty(),
                                         enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(),
                                         exit = androidx.compose.animation.shrinkVertically() + androidx.compose.animation.fadeOut()
                                     ) {
@@ -520,8 +520,8 @@ fun MainScreen(
                                         ) {
                                             item {
                                                 FilterChip(
-                                                    selected = selectedCuisine == null,
-                                                    onClick = { selectedCuisine = null },
+                                                    selected = selectedCraveTags.isEmpty(),
+                                                    onClick = { selectedCraveTags = emptySet() },
                                                     label = { Text("🍽️ Alle") },
                                                     colors = FilterChipDefaults.filterChipColors(
                                                         selectedContainerColor = orange,
@@ -529,11 +529,14 @@ fun MainScreen(
                                                     )
                                                 )
                                             }
-                                            items(availableCuisines) { cuisine ->
+                                            items(availableTags) { tag ->
                                                 FilterChip(
-                                                    selected = selectedCuisine == cuisine,
-                                                    onClick = { selectedCuisine = if (selectedCuisine == cuisine) null else cuisine },
-                                                    label = { Text("${cuisineEmoji(cuisine)} $cuisine") },
+                                                    selected = tag in selectedCraveTags,
+                                                    onClick = {
+                                                        selectedCraveTags = if (tag in selectedCraveTags)
+                                                            selectedCraveTags - tag else selectedCraveTags + tag
+                                                    },
+                                                    label = { Text("${cuisineEmoji(tag)} $tag") },
                                                     colors = FilterChipDefaults.filterChipColors(
                                                         selectedContainerColor = orange,
                                                         selectedLabelColor = Color.White
@@ -542,12 +545,12 @@ fun MainScreen(
                                             }
                                         }
                                     }
-                                    val craveFiltered = if (selectedCuisine != null) craveEligible.filter { recipe ->
+                                    val craveFiltered = if (selectedCraveTags.isNotEmpty()) craveEligible.filter { recipe ->
                                         try {
                                             val gson = com.google.gson.Gson()
                                             val type = object : com.google.gson.reflect.TypeToken<List<String>>() {}.type
                                             val recipeTags = gson.fromJson<List<String>>(recipe.tags, type) ?: emptyList()
-                                            selectedCuisine in recipeTags
+                                            selectedCraveTags.all { it in recipeTags }
                                         } catch (_: Exception) { false }
                                     } else craveEligible
                                     Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
@@ -660,6 +663,7 @@ fun MainScreen(
                                 batchState = batchState,
                                 batchText = batchInputText,
                                 isBatchTab = isBatchTab,
+                                isManualTab = isManualTab,
                                 onUrlChange = { importViewModel.setUrl(it) },
                                 onImport = { importViewModel.importRecipe() },
                                 onSave = { importViewModel.saveRecipe() },
@@ -671,6 +675,7 @@ fun MainScreen(
                                 onToggleAssistantBubble = { showAssistantBubble = !showAssistantBubble },
                                 isAssistantVisible = showAssistantBubble,
                                 onBatchTabChange = { importViewModel.setBatchTab(it) },
+                                onManualTabChange = { importViewModel.setManualTab(it) },
                                 onBatchTextChange = { importViewModel.setBatchInputText(it) },
                                 onFilterSaved = { tags ->
                                     recipeViewModel.clearTags()
@@ -692,6 +697,7 @@ fun MainScreen(
                                 onBatchReset = { importViewModel.resetBatch() },
                                 onSelectThumbnail = { importViewModel.selectThumbnail(it) },
                                 onSkipInQueue = { importViewModel.skipCurrentInQueue() },
+                                onManualSave = { title, tags, notes -> importViewModel.saveManualRecipe(title, tags, notes) },
                                 onRecipeClick = { r -> selectedRecipe = r; selectedRecipeIsPartner = false },
                                 events = importViewModel.events
                             )

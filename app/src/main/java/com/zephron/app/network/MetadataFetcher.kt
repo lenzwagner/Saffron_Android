@@ -455,10 +455,11 @@ object MetadataFetcher {
                 - Alles auf Deutsch
                 - "category": genau eines von: Hähnchen, Pute, Rind, Fisch, Pasta, Reis, Kartoffeln, Mexikanisch, Asiatisch, Vegetarisch, Andere
                 - "course": PFLICHT – genau eines von: Vorspeise, Hauptgang, Dessert, Getränk
+                - "weight": PFLICHT – genau eines von: Leicht, Deftig (Leicht = Salate/Gemüse/gesund, Deftig = viel Fett/Käse/Fleisch)
                 - "tags": 2–5 Begriffe aus bekannten Tags
 
                 Gib NUR valides JSON zurück:
-                {"title":"...","ingredients":["..."],"steps":["..."],"category":"...","course":"...","tags":["..."]}
+                {"title":"...","ingredients":["..."],"steps":["..."],"category":"...","course":"...","weight":"...","tags":["..."]}
                 ${if (caption.isNotBlank()) "\nZusätzlicher Caption-Text:\n$caption" else ""}
             """.trimIndent()
 
@@ -516,14 +517,18 @@ object MetadataFetcher {
             val category = recipeJson.optString("category").ifBlank { detectCategory(title, caption) }
             val geminiCourse = recipeJson.optString("course").trim()
                 .let { c -> listOf("Vorspeise", "Hauptgang", "Dessert", "Getränk").firstOrNull { it == c } }
+            val geminiWeight = recipeJson.optString("weight").trim()
+                .let { w -> listOf("Leicht", "Deftig").firstOrNull { it == w } }
             val baseTags = recipeJson.optJSONArray("tags")
                 ?.let { arr -> (0 until arr.length()).map { arr.getString(it) } }
                 ?.takeIf { it.isNotEmpty() }
                 ?: TagDetector.detect(title, caption)
             val existingCourses = setOf("Vorspeise", "Hauptgang", "Dessert", "Getränk")
-            val tagsWithoutCourse = baseTags.filter { it !in existingCourses }
+            val existingWeights = setOf("Leicht", "Deftig")
+            val tagsWithoutCourseOrWeight = baseTags.filter { it !in existingCourses && it !in existingWeights }
             val courseTag = geminiCourse ?: baseTags.firstOrNull { it in existingCourses } ?: "Hauptgang"
-            val tags = (tagsWithoutCourse + courseTag).distinct()
+            val weightTag = geminiWeight ?: "Deftig"
+            val tags = (tagsWithoutCourseOrWeight + courseTag + weightTag).distinct()
 
             Result.success(
                 RecipeMetadata(
@@ -581,10 +586,13 @@ object MetadataFetcher {
                     • Hauptgang  = Haupt-Mahlzeit, herzhafte Gerichte, Suppe als Mahlzeit
                     • Dessert    = Süßspeise, Kuchen, Eis, Mousse, Tiramisu, Pralinen
                     • Getränk    = Smoothie, Saft, Cocktail, Kaffee, Tee, Shake, Sirup
+                - "weight": PFLICHT – genau eines von: Leicht, Deftig
+                    • Leicht = Salate, Suppen, Smoothies, Gerichte mit viel Gemüse, unter ~500 kcal, gesund/kalorienarm
+                    • Deftig  = Gerichte mit viel Fett, Käse, Fleisch, Teig, Sahne, Burgern, Frittiertem — über ~600 kcal
                 - "tags": 2–5 Begriffe aus: Hähnchen, Pute, Rind, Schwein, Fisch, Meeresfrüchte, Lamm, Ente, Fleisch, Reis, Pasta, Nudeln, Kartoffeln, Brot, Vegetarisch, Vegan, Warm, Kalt, Suppe, Salat, Süß, Frühstück, Italienisch, Asiatisch, Chinesisch, Japanisch, Thailändisch, Indisch, Mexikanisch, Mediterran, Französisch, Griechisch, Türkisch, Amerikanisch, Deutsch, Spanisch, Koreanisch, Vietnamesisch
 
                 Gib NUR valides JSON zurück, kein Markdown, kein Codeblock:
-                {"title":"...","ingredients":["..."],"steps":["..."],"category":"...","course":"...","tags":["..."]}
+                {"title":"...","ingredients":["..."],"steps":["..."],"category":"...","course":"...","weight":"...","tags":["..."]}
 
                 Text:
                 $caption
@@ -639,18 +647,22 @@ object MetadataFetcher {
             val category = recipeJson.optString("category").ifBlank { detectCategory(title, caption) }
             val geminiCourse = recipeJson.optString("course").trim()
                 .let { c -> listOf("Vorspeise", "Hauptgang", "Dessert", "Getränk").firstOrNull { it == c } }
+            val geminiWeight = recipeJson.optString("weight").trim()
+                .let { w -> listOf("Leicht", "Deftig").firstOrNull { it == w } }
             val baseTags = recipeJson.optJSONArray("tags")
                 ?.let { arr -> (0 until arr.length()).map { arr.getString(it) } }
                 ?.takeIf { it.isNotEmpty() }
                 ?: TagDetector.detect(title, caption)
-            // Ensure exactly one course tag is present
+            // Ensure exactly one course tag and one weight tag are present
             val existingCourses = setOf("Vorspeise", "Hauptgang", "Dessert", "Getränk")
-            val tagsWithoutCourse = baseTags.filter { it !in existingCourses }
+            val existingWeights = setOf("Leicht", "Deftig")
+            val tagsWithoutCourseOrWeight = baseTags.filter { it !in existingCourses && it !in existingWeights }
             val courseTag = geminiCourse
                 ?: baseTags.firstOrNull { it in existingCourses }
                 ?: TagDetector.detect(title, caption).firstOrNull { it in existingCourses }
                 ?: "Hauptgang"
-            val tags = (tagsWithoutCourse + courseTag).distinct()
+            val weightTag = geminiWeight ?: "Deftig"
+            val tags = (tagsWithoutCourseOrWeight + courseTag + weightTag).distinct()
 
             Result.success(
                 RecipeMetadata(

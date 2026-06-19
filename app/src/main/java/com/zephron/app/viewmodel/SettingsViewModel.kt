@@ -1173,7 +1173,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                             .get()
                             .await()
 
-                        if (friendSwipe.exists() && friendSwipe.getBoolean("liked") == true) {
+                        if (friendSwipe.exists() &&
+                            friendSwipe.getBoolean("liked") == true &&
+                            friendSwipe.getString("date") == todayString) {
                             // MATCH!
                             val friendName = _friendNicknames.value[friendId] ?: _friendNames.value[friendId] ?: "Dein Freund"
 

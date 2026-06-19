@@ -17,11 +17,13 @@ import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.RiceBowl
 import androidx.compose.material.icons.filled.SetMeal
 import androidx.compose.material.icons.filled.SoupKitchen
+import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.ui.graphics.vector.ImageVector
 
 val TAG_GROUPS: List<Pair<String, List<String>>> = listOf(
+    "Gewicht"     to listOf("Leicht", "Deftig"),
     "Gang"        to listOf("Vorspeise", "Hauptgang", "Dessert", "Getränk"),
     "Protein"     to listOf("Hähnchen", "Pute", "Rind", "Schwein", "Fisch", "Meeresfrüchte", "Lamm", "Ente"),
     "Kohlenhydrate" to listOf("Reis", "Pasta", "Nudeln", "Kartoffeln", "Brot"),
@@ -63,6 +65,8 @@ val TAG_ICONS: Map<String, ImageVector> = mapOf(
     "Fleisch"       to Icons.Filled.LunchDining,
     "Vegetarisch"   to Icons.Filled.Eco,
     "Vegan"         to Icons.Filled.Eco,
+    "Leicht"        to Icons.Filled.SelfImprovement,
+    "Deftig"        to Icons.Filled.LocalFireDepartment,
     "Warm"          to Icons.Filled.LocalFireDepartment,
     "Kalt"          to Icons.Filled.AcUnit,
     "Suppe"         to Icons.Filled.SoupKitchen,

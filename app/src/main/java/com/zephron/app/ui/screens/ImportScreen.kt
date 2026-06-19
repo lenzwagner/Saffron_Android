@@ -7,7 +7,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.*
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -112,6 +114,7 @@ fun ImportScreen(
     batchState: BatchImportState,
     batchText: String,
     isBatchTab: Boolean,
+    isManualTab: Boolean,
     onUrlChange: (String) -> Unit,
     onImport: () -> Unit,
     onSave: () -> Unit,
@@ -123,6 +126,7 @@ fun ImportScreen(
     onToggleAssistantBubble: () -> Unit = {},
     isAssistantVisible: Boolean = false,
     onBatchTabChange: (Boolean) -> Unit,
+    onManualTabChange: (Boolean) -> Unit,
     onBatchTextChange: (String) -> Unit,
     onFilterSaved: (List<String>) -> Unit,
     onExport: () -> Unit,
@@ -130,6 +134,7 @@ fun ImportScreen(
     onBatchReset: () -> Unit,
     onSelectThumbnail: (String) -> Unit,
     onSkipInQueue: () -> Unit,
+    onManualSave: (String, List<String>, String) -> Unit = { _, _, _ -> },
     onRecipeClick: (com.zephron.app.data.Recipe) -> Unit = {},
     events: kotlinx.coroutines.flow.SharedFlow<com.zephron.app.viewmodel.ImportEvent> = kotlinx.coroutines.flow.MutableSharedFlow()
 ) {
@@ -188,9 +193,11 @@ fun ImportScreen(
             }
         }
 
-        // ── Mode toggle (Single / Multiple) - Expressive Design ──
+        // ── Mode toggle (Link / Mehrere / Manuell) ───────────────────────────
         if (showToggle) {
             val accent = LocalAppColors.current.accent
+            // 0 = single link, 1 = batch, 2 = manual
+            val tabIndex = if (isManualTab) 2 else if (isBatchTab) 1 else 0
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -201,15 +208,13 @@ fun ImportScreen(
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
             ) {
                 Box(modifier = Modifier.fillMaxSize()) {
-                    // Sliding indicator
                     val indicatorOffset by animateFloatAsState(
-                        targetValue = if (isBatchTab) 1f else 0f,
+                        targetValue = tabIndex.toFloat(),
                         animationSpec = spring(stiffness = Spring.StiffnessLow, dampingRatio = Spring.DampingRatioMediumBouncy),
                         label = "import_tab_indicator"
                     )
-                    
                     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-                        val indicatorWidth = maxWidth / 2
+                        val indicatorWidth = maxWidth / 3
                         Box(
                             modifier = Modifier
                                 .offset(x = indicatorWidth * indicatorOffset)
@@ -219,12 +224,8 @@ fun ImportScreen(
                                 .background(accent, CircleShape)
                         )
                     }
-
                     Row(modifier = Modifier.fillMaxSize()) {
-                        listOf(
-                            stringResource(R.string.import_mode_single) to false,
-                            stringResource(R.string.import_mode_multi) to true
-                        ).forEach { (label, isBatch) ->
+                        listOf("Link", "Mehrere", "Manuell").forEachIndexed { idx, label ->
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
@@ -232,8 +233,9 @@ fun ImportScreen(
                                     .clickable(
                                         interactionSource = remember { MutableInteractionSource() },
                                         indication = null
-                                    ) { 
-                                        onBatchTabChange(isBatch)
+                                    ) {
+                                        onManualTabChange(idx == 2)
+                                        onBatchTabChange(idx == 1)
                                         onReset()
                                     },
                                 contentAlignment = Alignment.Center
@@ -242,7 +244,7 @@ fun ImportScreen(
                                     text = label,
                                     style = MaterialTheme.typography.labelLarge,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (isBatchTab == isBatch) Color.White 
+                                    color = if (tabIndex == idx) Color.White
                                             else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
@@ -262,6 +264,11 @@ fun ImportScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            // ── Manual entry tab ──────────────────────────────────────────────
+            if (isManualTab && importState !is ImportState.Saved) {
+                ManualRecipeEntry(onSave = onManualSave, onReset = onReset)
+                return@Column
+            }
             AnimatedContent(
                 targetState = Triple(batchState, importState, isBatchTab),
                 transitionSpec = {
@@ -1869,6 +1876,116 @@ private fun AlreadyExistsCard(
 
             TextButton(onClick = onReset) {
                 Text(stringResource(R.string.import_another), color = accent)
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@Composable
+private fun ManualRecipeEntry(
+    onSave: (String, List<String>, String) -> Unit,
+    onReset: () -> Unit
+) {
+    val colors = LocalAppColors.current
+    var title by remember { mutableStateOf("") }
+    var notes by remember { mutableStateOf("") }
+    var selectedTags by remember { mutableStateOf<List<String>>(emptyList()) }
+    var showTagPicker by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Icon + heading
+        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(
+                    Icons.Filled.EditNote,
+                    contentDescription = null,
+                    modifier = Modifier.size(48.dp),
+                    tint = colors.accent
+                )
+                Text("Rezept manuell anlegen", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text("Ohne Link — gib einfach Namen und Kategorie ein.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+            }
+        }
+
+        OutlinedTextField(
+            value = title,
+            onValueChange = { title = it },
+            label = { Text("Rezeptname *") },
+            leadingIcon = { Icon(Icons.Filled.Restaurant, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+
+        OutlinedTextField(
+            value = notes,
+            onValueChange = { notes = it },
+            label = { Text("Notizen (optional)") },
+            leadingIcon = { Icon(Icons.Filled.Notes, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+            modifier = Modifier.fillMaxWidth(),
+            minLines = 2,
+            maxLines = 4
+        )
+
+        // Tag picker
+        OutlinedButton(
+            onClick = { showTagPicker = true },
+            modifier = Modifier.fillMaxWidth(),
+            border = BorderStroke(1.dp, if (selectedTags.isEmpty()) MaterialTheme.colorScheme.outline else colors.accent)
+        ) {
+            Icon(Icons.Filled.Label, null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(if (selectedTags.isEmpty()) "Tags auswählen" else selectedTags.joinToString(", "))
+        }
+
+        if (selectedTags.isNotEmpty()) {
+            androidx.compose.foundation.lazy.LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                items(selectedTags) { tag ->
+                    AssistChip(
+                        onClick = { selectedTags = selectedTags - tag },
+                        label = { Text(tag, style = MaterialTheme.typography.labelSmall) },
+                        trailingIcon = { Icon(Icons.Filled.Close, null, modifier = Modifier.size(14.dp)) }
+                    )
+                }
+            }
+        }
+
+        Button(
+            onClick = { if (title.isNotBlank()) onSave(title, selectedTags, notes) },
+            modifier = Modifier.fillMaxWidth().height(52.dp),
+            enabled = title.isNotBlank(),
+            colors = ButtonDefaults.buttonColors(containerColor = colors.accent)
+        ) {
+            Icon(Icons.Filled.Save, null)
+            Spacer(Modifier.width(8.dp))
+            Text("Speichern", fontWeight = FontWeight.Bold)
+        }
+    }
+
+    if (showTagPicker) {
+        ModalBottomSheet(onDismissRequest = { showTagPicker = false }) {
+            Column(modifier = Modifier.padding(16.dp).fillMaxWidth()) {
+                Text("Tags", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 12.dp))
+                com.zephron.app.ui.TAG_GROUPS.forEach { (groupName, groupTags) ->
+                    Text(groupName, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))
+                    androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        groupTags.forEach { tag ->
+                            FilterChip(
+                                selected = tag in selectedTags,
+                                onClick = { selectedTags = if (tag in selectedTags) selectedTags - tag else selectedTags + tag },
+                                label = { Text(tag, style = MaterialTheme.typography.labelSmall) }
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.height(16.dp))
+                Button(onClick = { showTagPicker = false }, modifier = Modifier.fillMaxWidth()) { Text("Fertig") }
+                Spacer(Modifier.height(32.dp))
             }
         }
     }

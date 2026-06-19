@@ -136,6 +136,14 @@ class ImportViewModel(application: Application) : AndroidViewModel(application) 
     private val _isBatchTab = MutableStateFlow(false)
     val isBatchTab: StateFlow<Boolean> = _isBatchTab
 
+    private val _isManualTab = MutableStateFlow(false)
+    val isManualTab: StateFlow<Boolean> = _isManualTab
+
+    fun setManualTab(enabled: Boolean) {
+        _isManualTab.value = enabled
+        if (enabled) _isBatchTab.value = false
+    }
+
     // ── Queue state ────────────────────────────────────────────────────────────
     private val pendingQueue: ArrayDeque<String> = ArrayDeque()
     private var queueTotal = 0
@@ -315,6 +323,34 @@ class ImportViewModel(application: Application) : AndroidViewModel(application) 
     fun resetExplicit() {
         _importState.value = ImportState.Idle
         _url.value = ""
+    }
+
+    /** Saves a recipe without a URL — manual entry with just title + tags. */
+    fun saveManualRecipe(title: String, tags: List<String>, notes: String = "") {
+        if (title.isBlank()) return
+        viewModelScope.launch {
+            try {
+                val uid = auth.currentUser?.uid ?: ""
+                val manualId = "manual_${System.currentTimeMillis()}"
+                val recipe = Recipe(
+                    title = title.trim(),
+                    url = "manual://$manualId",
+                    thumbnailUrl = "",
+                    category = tags.firstOrNull() ?: "Andere",
+                    ingredients = "[]",
+                    tags = gson.toJson(tags),
+                    isVegetarian = "Vegetarisch" in tags || "Vegan" in tags,
+                    notes = notes.trim(),
+                    steps = "[]",
+                    ownerId = uid
+                )
+                repository.insert(recipe)
+                val saved = repository.getByUrl("manual://$manualId")
+                _importState.value = ImportState.Saved(tags = tags, savedRecipe = saved)
+            } catch (e: Exception) {
+                _importState.value = ImportState.Error("Fehler beim Speichern: ${e.message}")
+            }
+        }
     }
 
     // ── Batch queue ────────────────────────────────────────────────────────────
