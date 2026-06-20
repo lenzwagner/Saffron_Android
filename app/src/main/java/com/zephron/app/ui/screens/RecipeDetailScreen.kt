@@ -212,7 +212,8 @@ fun RecipeDetailScreen(
                         }
 
                         // ── Non-diet tags ───────────────────────────────────────
-                        val displayTags = tags.filter { it !in dietTags }
+                        val tagOrder = TAG_GROUPS.flatMap { it.second }.withIndex().associate { (i, t) -> t to i }
+                        val displayTags = tags.filter { it !in dietTags }.sortedBy { tagOrder[it] ?: Int.MAX_VALUE }
                         if (displayTags.isNotEmpty() || showEditTagsSheet) {
                             Spacer(Modifier.height(12.dp))
                         }
