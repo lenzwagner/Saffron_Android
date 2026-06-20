@@ -33,7 +33,7 @@ val TAG_GROUPS: List<Pair<String, List<String>>> = listOf(
     "Küche"       to listOf(
         "Italienisch", "Asiatisch", "Chinesisch", "Japanisch", "Thailändisch",
         "Indisch", "Mexikanisch", "Mediterran", "Französisch", "Griechisch",
-        "Türkisch", "Amerikanisch", "Deutsch", "Spanisch", "Koreanisch", "Vietnamesisch"
+        "Türkisch", "Amerikanisch", "Deutsch", "Europäisch", "Spanisch", "Koreanisch", "Vietnamesisch"
     ),
 )
 
