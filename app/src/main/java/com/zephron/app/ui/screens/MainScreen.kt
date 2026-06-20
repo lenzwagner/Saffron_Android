@@ -470,8 +470,15 @@ fun MainScreen(
 
                                     // ── Content ───────────────────────────────────────────
                                     val myUid = settingsViewModel.firebaseUser.value?.uid ?: ""
-                                    val craveEligible = allRecipes.filter {
-                                        it.ownerId == myUid || (cravePartnerId != null && it.ownerId == cravePartnerId)
+                                    val today = java.time.LocalDate.now().toString()
+                                    val pairId = if (cravePartnerId.isNullOrBlank()) myUid
+                                                 else listOf(myUid, cravePartnerId!!).sorted().joinToString("_")
+                                    val craveEligible = remember(allRecipes, cravePartnerId, today) {
+                                        val filtered = allRecipes.filter {
+                                            it.ownerId == myUid || (!cravePartnerId.isNullOrBlank() && it.ownerId == cravePartnerId)
+                                        }
+                                        val seed = (today + pairId).hashCode().toLong()
+                                        filtered.shuffled(java.util.Random(seed))
                                     }
                                     val allKnownTags = remember {
                                         TAG_GROUPS.flatMap { it.second }
