@@ -90,6 +90,14 @@ fun MainScreen(
     val coroutineScope = rememberCoroutineScope()
     val selectedTab by remember { derivedStateOf { pagerState.currentPage } }
 
+    // ── Update check ─────────────────────────────────────────────────────────
+    var updateInfo by remember { mutableStateOf<com.zephron.app.utils.UpdateInfo?>(null) }
+    LaunchedEffect(Unit) {
+        updateInfo = com.zephron.app.utils.UpdateChecker.check(
+            com.zephron.app.BuildConfig.VERSION_NAME
+        )
+    }
+
     var selectedRecipe by remember { mutableStateOf<Recipe?>(null) }
     // true = opened from own gallery; false = opened from Crave (partner recipe)
     var selectedRecipeIsPartner by remember { mutableStateOf(false) }
@@ -187,6 +195,29 @@ fun MainScreen(
         animationSpec = tween(500),
         label = "assistant_blur"
     )
+
+    // ── Update dialog ─────────────────────────────────────────────────────────
+    updateInfo?.let { info ->
+        AlertDialog(
+            onDismissRequest = { updateInfo = null },
+            title = { Text("Update verfügbar") },
+            text = { Text("Version ${info.latestVersion} ist verfügbar. Jetzt herunterladen?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW,
+                            android.net.Uri.parse(info.downloadUrl))
+                        context.startActivity(intent)
+                        updateInfo = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = orange)
+                ) { Text("Herunterladen") }
+            },
+            dismissButton = {
+                TextButton(onClick = { updateInfo = null }) { Text("Später") }
+            }
+        )
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Main App Content

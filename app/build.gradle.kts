@@ -22,8 +22,8 @@ android {
         applicationId = "com.zephron.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 52
-        versionName = "5.6"
+        versionCode = 53
+        versionName = "5.7"
     }
 
     signingConfigs {
@@ -93,9 +93,47 @@ tasks.register("copyApkToDrive") {
     }
 }
 
+// ── Auto-publish release APK to GitHub Releases ───────────────────────────────
+tasks.register("publishToGitHub") {
+    notCompatibleWithConfigurationCache("Publishes APK to GitHub Releases")
+    dependsOn("assembleRelease")
+    doLast {
+        val versionName = android.defaultConfig.versionName ?: "unknown"
+        val src = layout.buildDirectory.file("outputs/apk/release/app-release.apk").get().asFile
+        val tag = "v$versionName"
+        val repo = "lenzwagner/Saffron_Android"
+
+        // Create or overwrite the GitHub Release and upload the APK.
+        val result = exec {
+            commandLine(
+                "gh", "release", "create", tag,
+                src.absolutePath,
+                "--repo", repo,
+                "--title", "Zephron $tag",
+                "--notes", "Automatisch generierter Release von assembleRelease.",
+                "--latest"
+            )
+            isIgnoreExitValue = true
+        }
+        if (result.exitValue != 0) {
+            // Release already exists — upload/overwrite the asset.
+            exec {
+                commandLine(
+                    "gh", "release", "upload", tag,
+                    src.absolutePath,
+                    "--repo", repo,
+                    "--clobber"
+                )
+            }
+        }
+        println("✅  APK → GitHub Release: $tag")
+    }
+}
+
 afterEvaluate {
     tasks.named("assembleRelease") {
         finalizedBy("copyApkToDrive")
+        finalizedBy("publishToGitHub")
     }
 }
 
