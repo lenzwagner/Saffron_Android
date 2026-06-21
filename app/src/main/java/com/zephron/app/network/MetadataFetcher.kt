@@ -1,5 +1,6 @@
 package com.zephron.app.network
 
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -51,6 +52,26 @@ object MetadataFetcher {
         .connectTimeout(20, TimeUnit.SECONDS)
         .readTimeout(45, TimeUnit.SECONDS)
         .build()
+
+    private fun logGeminiUsage(responseBody: String, type: String, sourceUrl: String) {
+        try {
+            val usage = JSONObject(responseBody).optJSONObject("usageMetadata") ?: return
+            val inputTokens  = usage.optInt("promptTokenCount")
+            val outputTokens = usage.optInt("candidatesTokenCount")
+            val totalTokens  = usage.optInt("totalTokenCount")
+            FirebaseFirestore.getInstance().collection("geminiLog").add(
+                mapOf(
+                    "ts"           to System.currentTimeMillis(),
+                    "type"         to type,
+                    "model"        to "gemini-2.5-flash",
+                    "inputTokens"  to inputTokens,
+                    "outputTokens" to outputTokens,
+                    "totalTokens"  to totalTokens,
+                    "sourceUrl"    to sourceUrl
+                )
+            )
+        } catch (_: Exception) {}
+    }
 
     private val BROWSER_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
             "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
@@ -490,6 +511,7 @@ object MetadataFetcher {
 
             val responseBody = response.body?.string()
                 ?: return Result.failure(Exception("Empty vision response"))
+            logGeminiUsage(responseBody, "vision", caption.take(200))
             val rawText = org.json.JSONObject(responseBody)
                 .getJSONArray("candidates").getJSONObject(0)
                 .getJSONObject("content").getJSONArray("parts")
@@ -609,6 +631,7 @@ object MetadataFetcher {
             if (!response.isSuccessful) return Result.failure(Exception("Gemini ${response.code}"))
 
             val responseBody = response.body?.string() ?: return Result.failure(Exception("Empty response"))
+            logGeminiUsage(responseBody, "text", thumbnail)
             val rawText = org.json.JSONObject(responseBody)
                 .getJSONArray("candidates")
                 .getJSONObject(0)
