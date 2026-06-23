@@ -877,6 +877,7 @@ private fun PreviewCard(
     val accent = LocalAppColors.current.accent
     val secondary = LocalAppColors.current.secondary
     var showTagPicker by remember { mutableStateOf(false) }
+    var titleDraft by remember { mutableStateOf(metadata.title) }
 
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
@@ -929,8 +930,8 @@ private fun PreviewCard(
 
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
-                    value = metadata.title,
-                    onValueChange = onTitleChange,
+                    value = titleDraft,
+                    onValueChange = { titleDraft = it; onTitleChange(it) },
                     label = { Text(stringResource(R.string.import_title_label)) },
                     leadingIcon = { Icon(Icons.Filled.LocalPizza, null, tint = accent.copy(alpha = 0.6f)) },
                     modifier = Modifier.fillMaxWidth(),
@@ -1489,6 +1490,7 @@ private fun QueueReviewCard(
     val accent = LocalAppColors.current.accent
     val secondary = LocalAppColors.current.secondary
     var showTagPicker by remember { mutableStateOf(false) }
+    var titleDraft by remember { mutableStateOf(metadata.title) }
 
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
@@ -1530,8 +1532,8 @@ private fun QueueReviewCard(
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 // Title
                 OutlinedTextField(
-                    value = metadata.title,
-                    onValueChange = onTitleChange,
+                    value = titleDraft,
+                    onValueChange = { titleDraft = it; onTitleChange(it) },
                     label = { Text(stringResource(R.string.import_title_label)) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
