@@ -25,6 +25,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.shadow
@@ -429,6 +430,7 @@ private fun BatchImportCard(
                         onValueChange = onBatchTextChange,
                         label = { Text(stringResource(R.string.import_batch_label)) },
                         leadingIcon = { Icon(Icons.Filled.Link, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                        trailingIcon = { if (batchText.isNotEmpty()) IconButton(onClick = { onBatchTextChange("") }) { Icon(Icons.Filled.Clear, null) } },
                         modifier = Modifier
                             .fillMaxWidth()
                             .heightIn(min = 160.dp),
@@ -779,6 +781,7 @@ private fun ImportCard(
                 placeholder = { Text("https://www.tiktok.com/...", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)) },
                 label = { Text(stringResource(R.string.import_url_label)) },
                 leadingIcon = { Icon(Icons.Filled.Link, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                trailingIcon = { if (url.isNotEmpty()) IconButton(onClick = { onUrlChange("") }) { Icon(Icons.Filled.Clear, null) } },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
                 singleLine = true,
@@ -931,10 +934,13 @@ private fun PreviewCard(
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = titleDraft,
-                    onValueChange = { titleDraft = it; onTitleChange(it) },
+                    onValueChange = { titleDraft = it },
                     label = { Text(stringResource(R.string.import_title_label)) },
                     leadingIcon = { Icon(Icons.Filled.LocalPizza, null, tint = accent.copy(alpha = 0.6f)) },
-                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = { if (titleDraft.isNotEmpty()) IconButton(onClick = { titleDraft = ""; onTitleChange("") }) { Icon(Icons.Filled.Clear, null) } },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onFocusChanged { if (!it.isFocused) onTitleChange(titleDraft) },
                     shape = RoundedCornerShape(12.dp),
                     singleLine = false,
                     maxLines = 3,
@@ -1533,9 +1539,12 @@ private fun QueueReviewCard(
                 // Title
                 OutlinedTextField(
                     value = titleDraft,
-                    onValueChange = { titleDraft = it; onTitleChange(it) },
+                    onValueChange = { titleDraft = it },
                     label = { Text(stringResource(R.string.import_title_label)) },
-                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = { if (titleDraft.isNotEmpty()) IconButton(onClick = { titleDraft = ""; onTitleChange("") }) { Icon(Icons.Filled.Clear, null) } },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onFocusChanged { if (!it.isFocused) onTitleChange(titleDraft) },
                     shape = RoundedCornerShape(12.dp),
                     singleLine = false, maxLines = 3,
                     colors = OutlinedTextFieldDefaults.colors(
