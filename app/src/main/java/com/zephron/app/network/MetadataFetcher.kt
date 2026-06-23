@@ -13,6 +13,7 @@ import org.jsoup.Jsoup
 import org.json.JSONObject
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.delay
 
 data class RecipeMetadata(
     val title: String,
@@ -52,6 +53,19 @@ object MetadataFetcher {
         .connectTimeout(20, TimeUnit.SECONDS)
         .readTimeout(45, TimeUnit.SECONDS)
         .build()
+
+    /** Executes a Gemini HTTP request, retrying up to 3× on 429 with exponential back-off. */
+    private suspend fun geminiExecute(request: okhttp3.Request): okhttp3.Response {
+        var delayMs = 5_000L
+        repeat(3) { attempt ->
+            val response = geminiClient.newCall(request).execute()
+            if (response.code != 429) return response
+            response.close()
+            if (attempt < 2) delay(delayMs).also { delayMs *= 2 }
+        }
+        // Final attempt — return whatever we get
+        return geminiClient.newCall(request).execute()
+    }
 
     private fun logGeminiUsage(responseBody: String, type: String, sourceUrl: String) {
         try {
@@ -168,7 +182,7 @@ object MetadataFetcher {
     private const val INSTA_PYTHON_BACKEND_URL = "https://us-central1-saffron-498311.cloudfunctions.net/get_insta_recipe"
     private const val INSTA_PYTHON_BACKEND_URL_ALT = "https://get-insta-recipe-498311-uc.a.run.app"
 
-    private fun fetchInstagram(url: String): Result<RecipeMetadata> {
+    private suspend fun fetchInstagram(url: String): Result<RecipeMetadata> {
         val shortcode = extractInstagramShortcode(url)
             ?: return Result.failure(Exception("Could not parse Instagram URL. Expected: instagram.com/p/… or /reel/…"))
 
@@ -192,7 +206,7 @@ object MetadataFetcher {
         }
     }
 
-    private fun fetchWithPythonCloudFunction(baseUrl: String, shortcode: String): Result<RecipeMetadata> {
+    private suspend fun fetchWithPythonCloudFunction(baseUrl: String, shortcode: String): Result<RecipeMetadata> {
         return try {
             val jsonPayload = JSONObject().apply {
                 put("shortcode", shortcode)
@@ -228,7 +242,7 @@ object MetadataFetcher {
 
     // Requests the main post URL and reads OG meta tags.
     // Instagram serves these server-side for all public posts (used by link previews).
-    private fun fetchInstagramOg(shortcode: String): Result<RecipeMetadata> {
+    private suspend fun fetchInstagramOg(shortcode: String): Result<RecipeMetadata> {
         return try {
             val postUrl = "https://www.instagram.com/p/$shortcode/"
             val doc = Jsoup.connect(postUrl)
@@ -258,7 +272,7 @@ object MetadataFetcher {
     }
 
     // ── TikTok ────────────────────────────────────────────────────────────────
-    private fun fetchTikTok(url: String): Result<RecipeMetadata> {
+    private suspend fun fetchTikTok(url: String): Result<RecipeMetadata> {
         val resolvedUrl = resolveRedirect(url)
         val encoded = URLEncoder.encode(resolvedUrl, "UTF-8")
         val oembedUrl = "https://www.tiktok.com/oembed?url=$encoded"
@@ -432,7 +446,7 @@ object MetadataFetcher {
      * Sends TikTok slide images to Gemini Vision to extract recipe information.
      * Downloads up to 5 images, base64-encodes them, and sends as a multimodal prompt.
      */
-    private fun extractWithGeminiVision(
+    private suspend fun extractWithGeminiVision(
         imageUrls: List<String>,
         caption: String,
         thumbnailFallback: String
@@ -506,7 +520,8 @@ object MetadataFetcher {
                 .post(bodyJson.toRequestBody("application/json".toMediaType()))
                 .build()
 
-            val response = geminiClient.newCall(request).execute()
+            val response = geminiExecute(request)
+            if (response.code == 429) return Result.failure(Exception("Gemini-Limit erreicht. Bitte kurz warten und erneut versuchen."))
             if (!response.isSuccessful) return Result.failure(Exception("Gemini Vision ${response.code}"))
 
             val responseBody = response.body?.string()
@@ -569,7 +584,7 @@ object MetadataFetcher {
         }
     }
 
-    private fun extractWithGemini(caption: String, thumbnail: String): Result<RecipeMetadata> {
+    private suspend fun extractWithGemini(caption: String, thumbnail: String): Result<RecipeMetadata> {
         return try {
             val prompt = """
                 Du bist ein Koch-Assistent. Der folgende Text stammt aus einer Social-Media-Caption (TikTok/Instagram) und kann informal, unvollständig oder unstrukturiert sein.
@@ -627,7 +642,8 @@ object MetadataFetcher {
                 .post(body.toRequestBody(mediaType))
                 .build()
 
-            val response = geminiClient.newCall(request).execute()
+            val response = geminiExecute(request)
+            if (response.code == 429) return Result.failure(Exception("Gemini-Limit erreicht. Bitte kurz warten und erneut versuchen."))
             if (!response.isSuccessful) return Result.failure(Exception("Gemini ${response.code}"))
 
             val responseBody = response.body?.string() ?: return Result.failure(Exception("Empty response"))
@@ -705,7 +721,7 @@ object MetadataFetcher {
     }
 
     // ── Generic HTML ─────────────────────────────────────────────────────────
-    private fun fetchGenericHtml(url: String): Result<RecipeMetadata> {
+    private suspend fun fetchGenericHtml(url: String): Result<RecipeMetadata> {
         val html = getHtml(url)
             ?: return Result.failure(Exception("Could not load the URL. Check your connection."))
 
