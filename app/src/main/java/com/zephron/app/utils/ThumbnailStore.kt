@@ -88,24 +88,21 @@ object ThumbnailStore {
     ) = withContext(Dispatchers.IO) {
         val recipes = dao.getAllRecipesOnce()
         val toMigrate = recipes.filter { r ->
-            r.thumbnailUrl.isNotBlank()
-                && !r.thumbnailUrl.startsWith("file://")
-                && !r.thumbnailUrl.contains("firebasestorage.googleapis.com")
+            r.thumbnailUrl.isNotBlank() && !r.thumbnailUrl.startsWith("file://")
         }
         if (toMigrate.isEmpty()) return@withContext
         Log.d(TAG, "Migrating ${toMigrate.size} remote thumbnails to local storage…")
 
-        val docIdOf: (String) -> String = { url ->
-            java.util.Base64.getUrlEncoder().encodeToString(url.trim().toByteArray())
-        }
-
         toMigrate.forEach { recipe ->
             try {
-                val docId = docIdOf(recipe.url)
-                // Avoid re-downloading if file already exists (partial migration)
-                val existing = localPath(context, docId)
-                val localUri = existing ?: download(context, recipe.thumbnailUrl, docId)
-                if (localUri.startsWith("file://")) {
+                val isFirebase = recipe.thumbnailUrl.contains("firebasestorage.googleapis.com")
+                val docId = docIdFor(recipe)
+                if (localPath(context, docId) != null) return@forEach  // already cached
+
+                val localUri = download(context, recipe.thumbnailUrl, docId)
+                if (!isFirebase && localUri.startsWith("file://")) {
+                    // Non-Firebase URLs: update Room so Coil uses the local file directly.
+                    // Firebase URLs: keep Room unchanged — LocalThumbnailFetcher intercepts.
                     dao.update(recipe.copy(thumbnailUrl = localUri))
                 }
             } catch (e: Exception) {
@@ -113,6 +110,26 @@ object ThumbnailStore {
             }
         }
         Log.d(TAG, "Migration complete.")
+    }
+
+    /**
+     * Derives the local-cache docId for a recipe.
+     * - Firebase Storage URLs: extract the filename from the storage object path
+     *   (same logic as LocalThumbnailFetcher so the key always matches).
+     * - All other URLs: base64 of the recipe's source URL.
+     */
+    private fun docIdFor(recipe: com.zephron.app.data.Recipe): String {
+        val thumb = recipe.thumbnailUrl
+        if (thumb.contains("firebasestorage.googleapis.com")) {
+            try {
+                val uri = android.net.Uri.parse(thumb)
+                val obj = uri.getQueryParameter("o") ?: uri.pathSegments.lastOrNull() ?: ""
+                val filename = obj.substringAfterLast("/").substringAfterLast("%2F")
+                val docId = filename.removeSuffix(".jpg")
+                if (docId.isNotBlank()) return docId
+            } catch (_: Exception) {}
+        }
+        return java.util.Base64.getUrlEncoder().encodeToString(recipe.url.trim().toByteArray())
     }
 
     // ── Private helpers ──────────────────────────────────────────────────────
