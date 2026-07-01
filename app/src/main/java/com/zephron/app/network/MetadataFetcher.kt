@@ -35,6 +35,10 @@ data class RecipeMetadata(
 
 object MetadataFetcher {
 
+    @Volatile private var stepCallback: (String) -> Unit = {}
+
+    private fun step(msg: String) = stepCallback(msg)
+
     private val client = OkHttpClient.Builder()
         .connectTimeout(20, TimeUnit.SECONDS)
         .readTimeout(20, TimeUnit.SECONDS)
@@ -100,11 +104,12 @@ object MetadataFetcher {
         "vegetarian", "vegan", "veggie", "meatless", "plant-based", "plant based"
     )
 
-    suspend fun fetch(url: String): Result<RecipeMetadata> = withContext(Dispatchers.IO) {
+    suspend fun fetch(url: String, onStep: (String) -> Unit = {}): Result<RecipeMetadata> = withContext(Dispatchers.IO) {
+        stepCallback = onStep
         try {
             val trimmed = url.trim()
-            // Fetch recipe metadata and Google image in parallel
             coroutineScope {
+                step("Rezept wird geladen…")
                 val metaDeferred = async {
                     when {
                         isInstagram(trimmed) -> fetchInstagram(trimmed)
@@ -120,6 +125,7 @@ object MetadataFetcher {
                     return@coroutineScope Result.failure(Exception("Kein Rezept auf dieser Seite gefunden."))
                 }
 
+                step("Bild wird gesucht…")
                 val googleImageDeferred = async { fetchGoogleImage(metadata.title) }
                 val googleImageUrl = googleImageDeferred.await()
 
@@ -460,6 +466,7 @@ object MetadataFetcher {
         caption: String,
         thumbnailFallback: String
     ): Result<RecipeMetadata> {
+        step("KI analysiert Inhalt…")
         return try {
             // Download up to 5 slides
             val imageParts = imageUrls.take(5).mapNotNull { url ->
@@ -594,6 +601,7 @@ object MetadataFetcher {
     }
 
     private suspend fun extractWithGemini(caption: String, thumbnail: String): Result<RecipeMetadata> {
+        step("KI analysiert Inhalt…")
         return try {
             val prompt = """
                 Du bist ein Koch-Assistent. Der folgende Text stammt aus einer Social-Media-Caption (TikTok/Instagram) und kann informal, unvollständig oder unstrukturiert sein.

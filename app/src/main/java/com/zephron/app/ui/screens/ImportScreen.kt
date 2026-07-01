@@ -292,7 +292,7 @@ fun ImportScreen(
                                 onCancel = { onBatchReset() }
                             )
                             when (iState) {
-                                is ImportState.Loading -> QueueLoadingCard(bState)
+                                is ImportState.Loading -> QueueLoadingCard(bState, iState.step)
                                 is ImportState.Error   -> QueueErrorCard(
                                     error = iState,
                                     onSkip = onSkipInQueue,
@@ -861,7 +861,7 @@ private fun ImportCard(
                 if (importState is ImportState.Loading) {
                     com.zephron.app.ui.ExpressiveLoader(color = Color.White, size = 22.dp)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(R.string.import_fetching))
+                    Text(importState.step.ifBlank { stringResource(R.string.import_fetching) })
                 } else {
                     Text(stringResource(R.string.import_button), fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
@@ -1403,7 +1403,7 @@ private fun QueueProgressBanner(
 
 /** Shown while the next URL is being fetched. */
 @Composable
-private fun QueueLoadingCard(batchState: BatchImportState.QueueActive) {
+private fun QueueLoadingCard(batchState: BatchImportState.QueueActive, step: String = "") {
     val secondary = LocalAppColors.current.secondary
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
@@ -1422,6 +1422,14 @@ private fun QueueLoadingCard(batchState: BatchImportState.QueueActive) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
+            if (step.isNotBlank()) {
+                Text(
+                    text = step,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    textAlign = TextAlign.Center
+                )
+            }
         }
     }
 }

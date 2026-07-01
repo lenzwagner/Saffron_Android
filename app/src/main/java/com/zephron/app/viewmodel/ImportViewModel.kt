@@ -54,7 +54,7 @@ sealed class BatchImportState {
 
 sealed class ImportState {
     object Idle : ImportState()
-    object Loading : ImportState()
+    data class Loading(val step: String = "") : ImportState()
     data class Success(val url: String, val metadata: RecipeMetadata, val isSaving: Boolean = false) : ImportState()
     data class Error(val message: String, val sessionExpired: Boolean = false) : ImportState()
     data class Saved(val tags: List<String> = emptyList(), val savedRecipe: com.zephron.app.data.Recipe? = null) : ImportState()
@@ -205,14 +205,16 @@ class ImportViewModel(application: Application) : AndroidViewModel(application) 
         }
 
         viewModelScope.launch {
-            _importState.value = ImportState.Loading
+            _importState.value = ImportState.Loading()
             if (repository.existsByUrl(currentUrl)) {
                 val existing = repository.getByUrl(currentUrl)
                 _importState.value = if (existing != null) ImportState.AlreadyExists(existing)
                                      else ImportState.Error("Dieses Rezept wurde bereits importiert.")
                 return@launch
             }
-            MetadataFetcher.fetch(currentUrl).fold(
+            MetadataFetcher.fetch(currentUrl, onStep = { step ->
+                _importState.value = ImportState.Loading(step)
+            }).fold(
                 onSuccess = { metadata ->
                     val withDefault = if (metadata.servings == 0) metadata.copy(servings = 2) else metadata
                     _importState.value = ImportState.Success(currentUrl, withDefault)
@@ -445,7 +447,7 @@ class ImportViewModel(application: Application) : AndroidViewModel(application) 
 
         viewModelScope.launch {
             _url.value = url
-            _importState.value = ImportState.Loading
+            _importState.value = ImportState.Loading()
 
             // Silently skip duplicates in both modes
             if (repository.existsByUrl(url)) {
@@ -455,7 +457,9 @@ class ImportViewModel(application: Application) : AndroidViewModel(application) 
                 return@launch
             }
 
-            MetadataFetcher.fetch(url).fold(
+            MetadataFetcher.fetch(url, onStep = { step ->
+                _importState.value = ImportState.Loading(step)
+            }).fold(
                 onSuccess = { metadata ->
                     val m = if (metadata.servings == 0) metadata.copy(servings = 2) else metadata
                     if (currentBatchMode == BatchMode.AUTO) {
