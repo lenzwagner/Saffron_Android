@@ -202,7 +202,16 @@ object MetadataFetcher {
         } else {
             val error = cloudResult.exceptionOrNull()?.message ?: "Unbekannter Fehler"
             android.util.Log.e("ZephronImport", "Cloud Function failed: $error")
-            return Result.failure(Exception("Cloud-Import fehlgeschlagen: $error. Bitte Internetverbindung prüfen."))
+            val hint = when {
+                error.contains("401") || error.contains("login", ignoreCase = true) ->
+                    "Instagram-Session abgelaufen. Bitte später erneut versuchen."
+                error.contains("not found", ignoreCase = true) || error.contains("404") ->
+                    "Beitrag nicht gefunden oder privat."
+                error.contains("resolve host") || error.contains("Connect") ->
+                    "Keine Internetverbindung."
+                else -> "Cloud-Import fehlgeschlagen: $error"
+            }
+            return Result.failure(Exception(hint))
         }
     }
 
@@ -219,13 +228,13 @@ object MetadataFetcher {
                 .build()
 
             val response = backendClient.newCall(request).execute()
-            if (!response.isSuccessful) return Result.failure(Exception("Cloud Function Error: ${response.code}"))
-            
             val body = response.body?.string() ?: return Result.failure(Exception("Empty body"))
-            val json = JSONObject(body)
-            
+            val json = try { JSONObject(body) } catch (_: Exception) {
+                return Result.failure(Exception("Cloud Function Fehler ${response.code}"))
+            }
             if (!json.optBoolean("success", false)) {
-                return Result.failure(Exception(json.optString("error", "Unknown error")))
+                val detail = json.optString("error", "").ifBlank { "Fehler ${response.code}" }
+                return Result.failure(Exception(detail))
             }
             
             val caption = json.optString("description")
