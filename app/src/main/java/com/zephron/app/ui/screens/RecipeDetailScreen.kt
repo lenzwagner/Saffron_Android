@@ -23,7 +23,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.RestaurantMenu
 import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.outlined.RestaurantMenu
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -77,6 +79,7 @@ fun RecipeDetailScreen(
     onUpdateIsVegetarian: (Recipe, Boolean) -> Unit = { _, _ -> },
     onUpdateThumbnail: (Recipe, String) -> Unit = { _, _ -> },
     onToggleFavorite: (Recipe) -> Unit = {},
+    onToggleCooked: (Recipe) -> Unit = {},
     isOwnRecipe: Boolean = true,
     alreadyOwned: Boolean = false,
     onAdopt: ((Recipe) -> Unit)? = null
@@ -394,6 +397,7 @@ fun RecipeDetailScreen(
                             textAlign = TextAlign.Center,
                             color = orange
                         )
+                        IconButton(onClick = { onToggleCooked(recipe) }) { Icon(if (recipe.isCooked) Icons.Filled.RestaurantMenu else Icons.Outlined.RestaurantMenu, null, tint = if (recipe.isCooked) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurface) }
                         IconButton(onClick = { onToggleFavorite(recipe) }) { Icon(if (recipe.isFavorite) Icons.Filled.Bookmark else Icons.Filled.BookmarkBorder, null, tint = if (recipe.isFavorite) orange else MaterialTheme.colorScheme.onSurface) }
                     }
                 }
@@ -437,6 +441,7 @@ fun RecipeDetailScreen(
                             }
                         } else {
                             FloatingCircleButton(icon = if (recipe.isFavorite) Icons.Filled.Bookmark else Icons.Filled.BookmarkBorder, onClick = { onToggleFavorite(recipe) }, tint = if (recipe.isFavorite) orange else Color.White)
+                            FloatingCircleButton(icon = if (recipe.isCooked) Icons.Filled.RestaurantMenu else Icons.Outlined.RestaurantMenu, onClick = { onToggleCooked(recipe) }, tint = if (recipe.isCooked) Color(0xFF4CAF50) else Color.White)
                             FloatingCircleButton(icon = Icons.Filled.PhotoLibrary, onClick = { galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) })
                             FloatingCircleButton(icon = Icons.Filled.Delete, onClick = { showDeleteDialog = true })
                         }

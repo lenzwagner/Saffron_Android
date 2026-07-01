@@ -41,7 +41,8 @@ class RecipeViewModel(application: Application) : AndroidViewModel(application) 
     val searchMode = MutableStateFlow(SearchMode.TITLE)
     val maxCookTime = MutableStateFlow<Int?>(null) 
     val minRating = MutableStateFlow(0)             
-    val showFavoritesOnly = MutableStateFlow(false) 
+    val showFavoritesOnly = MutableStateFlow(false)
+    val showCookedOnly = MutableStateFlow(false)
     val filterOwnerId = MutableStateFlow<String?>(null)
 
     @OptIn(FlowPreview::class)
@@ -105,9 +106,10 @@ class RecipeViewModel(application: Application) : AndroidViewModel(application) 
             result
         }
 
-        recipes = combine(filtered, minRating, showFavoritesOnly) { list, minR, favOnly ->
+        recipes = combine(filtered, minRating, showFavoritesOnly, showCookedOnly) { list, minR, favOnly, cookedOnly ->
             var r = if (minR > 0) list.filter { it.rating >= minR } else list
             if (favOnly) r = r.filter { it.isFavorite }
+            if (cookedOnly) r = r.filter { it.isCooked }
             r
         }.stateIn(
             scope = viewModelScope,
@@ -229,6 +231,10 @@ class RecipeViewModel(application: Application) : AndroidViewModel(application) 
 
     fun toggleFavorite(recipe: Recipe) {
         viewModelScope.launch { repository.update(recipe.copy(isFavorite = !recipe.isFavorite)) }
+    }
+
+    fun toggleCooked(recipe: Recipe) {
+        viewModelScope.launch { repository.update(recipe.copy(isCooked = !recipe.isCooked)) }
     }
 
     // ── Widget deep-link: open a specific recipe by ID ────────────────────────

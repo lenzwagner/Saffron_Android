@@ -131,6 +131,7 @@ fun MainScreen(
     val maxCookTime by recipeViewModel.maxCookTime.collectAsState()
     val minRating by recipeViewModel.minRating.collectAsState()
     val showFavoritesOnly by recipeViewModel.showFavoritesOnly.collectAsState()
+    val showCookedOnly by recipeViewModel.showCookedOnly.collectAsState()
     val filterOwnerId by recipeViewModel.filterOwnerId.collectAsState()
     val importUrl by importViewModel.url.collectAsState()
     val importState by importViewModel.importState.collectAsState()
@@ -720,6 +721,8 @@ fun MainScreen(
                                 maxCookTime = maxCookTime,
                                 minRating = minRating,
                                 showFavoritesOnly = showFavoritesOnly,
+                                showCookedOnly = showCookedOnly,
+                                onToggleCookedOnly = { recipeViewModel.showCookedOnly.value = it },
                                 filterOwnerId = filterOwnerId,
                                 friends = friends,
                                 onToggleFavoritesOnly = { recipeViewModel.setShowFavoritesOnly(it) },
@@ -918,6 +921,7 @@ fun MainScreen(
                         recipeViewModel.updateRecipe(r.copy(thumbnailUrl = path))
                     },
                     onToggleFavorite = { r -> recipeViewModel.toggleFavorite(r) },
+                    onToggleCooked = { r -> recipeViewModel.toggleCooked(r) },
                     isOwnRecipe = !selectedRecipeIsPartner,
                     alreadyOwned = selectedRecipeIsPartner && recipes.any { it.url == recipe.url },
                     onAdopt = if (selectedRecipeIsPartner && recipes.none { it.url == recipe.url }) {

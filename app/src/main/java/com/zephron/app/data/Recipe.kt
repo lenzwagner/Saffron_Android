@@ -22,5 +22,6 @@ data class Recipe(
     val createdAt: Long = System.currentTimeMillis(),
     val slideImages: String = "[]", // JSON array of slide image URLs (TikTok slideshows)
     val ownerId: String = "",       // UID of the user who owns this recipe
-    val isFavorite: Boolean = false // Bookmarked by the user (separate from rating)
+    val isFavorite: Boolean = false, // Bookmarked by the user (separate from rating)
+    val isCooked: Boolean = false    // Marked as already cooked
 )

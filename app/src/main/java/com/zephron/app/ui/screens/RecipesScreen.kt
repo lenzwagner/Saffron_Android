@@ -68,7 +68,9 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.RestaurantMenu
 import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.outlined.RestaurantMenu
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -151,6 +153,8 @@ fun RecipesScreen(
     maxCookTime: Int?,
     minRating: Int,
     showFavoritesOnly: Boolean = false,
+    showCookedOnly: Boolean = false,
+    onToggleCookedOnly: (Boolean) -> Unit = {},
     filterOwnerId: String? = null,
     friends: List<String> = emptyList(),
     onToggleFavoritesOnly: (Boolean) -> Unit = {},
@@ -281,6 +285,14 @@ fun RecipesScreen(
                         imageVector = if (showFavoritesOnly) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
                         contentDescription = stringResource(R.string.recipes_favorites_only),
                         tint = if (showFavoritesOnly) orange else MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                // Cooked-only toggle
+                IconButton(onClick = { onToggleCookedOnly(!showCookedOnly) }) {
+                    Icon(
+                        imageVector = if (showCookedOnly) Icons.Filled.RestaurantMenu else Icons.Outlined.RestaurantMenu,
+                        contentDescription = "Gekochte Rezepte",
+                        tint = if (showCookedOnly) orange else MaterialTheme.colorScheme.onSurface
                     )
                 }
                 // Filter button with badge showing active count
@@ -1060,6 +1072,36 @@ private fun RecipeGridCard(
                         Spacer(Modifier.width(3.dp))
                         Text(
                             text = "${recipe.rating}",
+                            color = Color.White,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+
+            // Cooked badge (bottom-right of image)
+            if (!selectionMode && recipe.isCooked) {
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFF2E7D32).copy(alpha = 0.85f),
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(6.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.RestaurantMenu,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(11.dp)
+                        )
+                        Spacer(Modifier.width(3.dp))
+                        Text(
+                            text = "Gekocht",
                             color = Color.White,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold
