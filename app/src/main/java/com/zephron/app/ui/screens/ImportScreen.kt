@@ -430,7 +430,16 @@ private fun BatchImportCard(
                         onValueChange = onBatchTextChange,
                         label = { Text(stringResource(R.string.import_batch_label)) },
                         leadingIcon = { Icon(Icons.Filled.Link, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-                        trailingIcon = { if (batchText.isNotEmpty()) IconButton(onClick = { onBatchTextChange("") }) { Icon(Icons.Filled.Clear, null) } },
+                        trailingIcon = {
+                            val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
+                            if (batchText.isNotEmpty()) {
+                                IconButton(onClick = { onBatchTextChange("") }) { Icon(Icons.Filled.Clear, null) }
+                            } else {
+                                IconButton(onClick = { clipboard.getText()?.text?.trim()?.let { if (it.isNotBlank()) onBatchTextChange(it) } }) {
+                                    Icon(Icons.Filled.ContentPaste, null)
+                                }
+                            }
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .heightIn(min = 160.dp),
@@ -781,7 +790,16 @@ private fun ImportCard(
                 placeholder = { Text("https://www.tiktok.com/...", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)) },
                 label = { Text(stringResource(R.string.import_url_label)) },
                 leadingIcon = { Icon(Icons.Filled.Link, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
-                trailingIcon = { if (url.isNotEmpty()) IconButton(onClick = { onUrlChange("") }) { Icon(Icons.Filled.Clear, null) } },
+                trailingIcon = {
+                    val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
+                    if (url.isNotEmpty()) {
+                        IconButton(onClick = { onUrlChange("") }) { Icon(Icons.Filled.Clear, null) }
+                    } else {
+                        IconButton(onClick = { clipboard.getText()?.text?.trim()?.let { if (it.isNotBlank()) onUrlChange(it) } }) {
+                            Icon(Icons.Filled.ContentPaste, null)
+                        }
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
                 singleLine = true,
