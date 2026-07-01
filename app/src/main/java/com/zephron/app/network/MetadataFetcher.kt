@@ -54,14 +54,14 @@ object MetadataFetcher {
         .readTimeout(45, TimeUnit.SECONDS)
         .build()
 
-    /** Executes a Gemini HTTP request, retrying up to 3× on 429 with exponential back-off. */
+    /** Executes a Gemini HTTP request, retrying up to 5× on 429 with exponential back-off. */
     private suspend fun geminiExecute(request: okhttp3.Request): okhttp3.Response {
-        var delayMs = 5_000L
-        repeat(3) { attempt ->
+        var delayMs = 10_000L
+        repeat(5) { attempt ->
             val response = geminiClient.newCall(request).execute()
             if (response.code != 429) return response
             response.close()
-            if (attempt < 2) delay(delayMs).also { delayMs *= 2 }
+            if (attempt < 4) delay(delayMs).also { delayMs *= 2 }
         }
         // Final attempt — return whatever we get
         return geminiClient.newCall(request).execute()
