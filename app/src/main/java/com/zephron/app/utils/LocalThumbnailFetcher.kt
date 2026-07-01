@@ -12,7 +12,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okio.buffer
 import okio.source
-import java.io.File
 import java.net.URL
 
 /**
@@ -31,21 +30,19 @@ class LocalThumbnailFetcher(
         if (!data.contains("firebasestorage.googleapis.com")) return null
 
         val docId = extractDocId(data) ?: return null
-        val sanitised = docId.replace(Regex("[^a-zA-Z0-9_\\-]"), "_").take(120)
-        val file = File(context.filesDir, "thumbnails/$sanitised.jpg")
+        val file = ThumbnailStore.thumbnailFile(context, docId)
 
         if (!file.exists()) {
-            // Cache miss — download and persist permanently.
-            val downloaded = withContext(Dispatchers.IO) {
+            // Cache miss — download, compress and persist permanently.
+            withContext(Dispatchers.IO) {
                 try {
                     val bytes = URL(data).openStream().use { it.readBytes() }
-                    file.parentFile?.mkdirs()
-                    file.writeBytes(bytes)
-                    true
-                } catch (_: Exception) { false }
+                    ThumbnailStore.save(context, bytes, docId)
+                } catch (_: Exception) { }
             }
-            if (!downloaded) return null
         }
+
+        if (!file.exists()) return null
 
         return SourceResult(
             source = ImageSource(file.source().buffer(), context),

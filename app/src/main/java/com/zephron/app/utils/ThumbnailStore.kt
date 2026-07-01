@@ -24,12 +24,15 @@ object ThumbnailStore {
     private const val DIR = "thumbnails"
 
     /** Max longest edge in pixels before down-sampling. */
-    private const val MAX_PX = 480
+    const val MAX_PX = 480
 
     /** JPEG quality (0–100). 82 gives a good size/quality balance. */
     private const val JPEG_QUALITY = 82
 
     // ── Public API ───────────────────────────────────────────────────────────
+
+    fun thumbnailFile(context: Context, docId: String): File =
+        File(thumbnailDir(context), "${sanitise(docId)}.jpg")
 
     /**
      * Decode [bytes], down-sample if larger than [MAX_PX], save as
@@ -84,9 +87,10 @@ object ThumbnailStore {
      */
     suspend fun migrateExisting(
         context: Context,
-        dao: com.zephron.app.data.RecipeDao
+        dao: com.zephron.app.data.RecipeDao,
+        allRecipes: List<com.zephron.app.data.Recipe>? = null
     ) = withContext(Dispatchers.IO) {
-        val recipes = dao.getAllRecipesOnce()
+        val recipes = allRecipes ?: dao.getAllRecipesOnce()
         val toMigrate = recipes.filter { r ->
             r.thumbnailUrl.isNotBlank() && !r.thumbnailUrl.startsWith("file://")
         }
@@ -95,14 +99,24 @@ object ThumbnailStore {
 
         toMigrate.forEach { recipe ->
             try {
-                val isFirebase = recipe.thumbnailUrl.contains("firebasestorage.googleapis.com")
                 val docId = docIdFor(recipe)
-                if (localPath(context, docId) != null) return@forEach  // already cached
+                val file = thumbnailFile(context, docId)
+                
+                // If file exists but is suspiciously large (> 300KB), re-compress it
+                val needsCompression = file.exists() && file.length() > 300 * 1024
+                
+                if (file.exists() && !needsCompression) return@forEach
 
-                val localUri = download(context, recipe.thumbnailUrl, docId)
-                if (!isFirebase && localUri.startsWith("file://")) {
-                    // Non-Firebase URLs: update Room so Coil uses the local file directly.
-                    // Firebase URLs: keep Room unchanged — LocalThumbnailFetcher intercepts.
+                val sourceUrl = if (file.exists() && needsCompression) "file://${file.absolutePath}" else recipe.thumbnailUrl
+                val bytes = if (sourceUrl.startsWith("file://")) {
+                    File(java.net.URI(sourceUrl)).readBytes()
+                } else {
+                    java.net.URL(sourceUrl).openStream().use { it.readBytes() }
+                }
+
+                val localUri = save(context, bytes, docId)
+                val isFirebase = recipe.thumbnailUrl.contains("firebasestorage.googleapis.com")
+                if (!isFirebase && localUri != null && localUri.startsWith("file://")) {
                     dao.update(recipe.copy(thumbnailUrl = localUri))
                 }
             } catch (e: Exception) {
@@ -118,7 +132,7 @@ object ThumbnailStore {
      *   (same logic as LocalThumbnailFetcher so the key always matches).
      * - All other URLs: base64 of the recipe's source URL.
      */
-    private fun docIdFor(recipe: com.zephron.app.data.Recipe): String {
+    fun docIdFor(recipe: com.zephron.app.data.Recipe): String {
         val thumb = recipe.thumbnailUrl
         if (thumb.contains("firebasestorage.googleapis.com")) {
             try {

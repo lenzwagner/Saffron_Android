@@ -1371,16 +1371,16 @@ private fun ImageSyncCard(
                     Text(
                         text = when (progress.state) {
                             SettingsViewModel.ImageSyncState.RUNNING ->
-                                if (progress.total > 0) "${progress.done} / ${progress.total} hochgeladen…"
-                                else "Lädt hoch…"
+                                if (progress.total > 0) "${progress.done} / ${progress.total} synchronisiert…"
+                                else "Wird synchronisiert…"
                             SettingsViewModel.ImageSyncState.DONE ->
-                                if (progress.total == 0) "Alle Bilder bereits synchronisiert ✓"
+                                if (progress.total == 0) "Alle Bilder lokal gespeichert ✓"
                                 else buildString {
                                     append("${progress.done} von ${progress.total} synchronisiert")
                                     if (progress.failed > 0) append(" · ${progress.failed} fehlgeschlagen")
                                 }
                             SettingsViewModel.ImageSyncState.ERROR -> "Fehler beim Sync"
-                            else -> "Rezeptbilder für Freunde sichtbar machen"
+                            else -> "Bilder herunterladen & für Freunde freigeben"
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = when (progress.state) {

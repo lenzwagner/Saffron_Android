@@ -68,6 +68,9 @@ node_modules/
 # dataconnect generated files
 .dataconnect
 
+# Instagram session files
+zephron_functions/session-*
+
 # Android
 *.iml
 .gradle/

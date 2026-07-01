@@ -588,18 +588,82 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private val _syncProgress = MutableStateFlow(ImageSyncProgress())
     val syncProgress: StateFlow<ImageSyncProgress> = _syncProgress
 
-    /** Manually upload all local file:// thumbnails to Firebase Storage and write
-     *  the download URLs back to Firestore so iOS and other clients see the images. */
+    /** Manually upload local thumbnails AND download remote ones for offline use. */
     fun syncImages() {
         if (_syncProgress.value.isRunning) return
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                healFirestoreFilePaths(dao)
+                syncAllImagesInternal(dao)
             } catch (e: Exception) {
                 Log.e(tag, "Manual image sync failed", e)
                 _syncProgress.value = _syncProgress.value.copy(state = ImageSyncState.ERROR)
             }
         }
+    }
+
+    /**
+     * Combined sync:
+     * 1. Uploads local file:// thumbnails of MY recipes to Firebase (to share).
+     * 2. Downloads remote https:// thumbnails of ANY recipe to local cache (for performance/offline).
+     */
+    private suspend fun syncAllImagesInternal(dao: com.zephron.app.data.RecipeDao, allRecipes: List<Recipe>? = null) {
+        val myUid = auth.currentUser?.uid ?: return
+        val ctx = getApplication<Application>().applicationContext
+        val all = allRecipes ?: dao.getAllRecipesOnce()
+
+        // Phase A: Upload local thumbnails
+        val toUpload = all.filter { it.ownerId == myUid && it.thumbnailUrl.startsWith("file://") }
+        // Phase B: Download remote thumbnails that aren't cached yet
+        val toDownload = all.filter { r ->
+            r.thumbnailUrl.isNotBlank() && 
+            !r.thumbnailUrl.startsWith("file://") &&
+            ThumbnailStore.localPath(ctx, ThumbnailStore.docIdFor(r)) == null
+        }
+
+        val total = toUpload.size + toDownload.size
+        if (total == 0) {
+            _syncProgress.value = ImageSyncProgress(state = ImageSyncState.DONE, done = 0, total = 0)
+            return
+        }
+
+        Log.d(tag, "Syncing images: ${toUpload.size} to upload, ${toDownload.size} to download")
+        _syncProgress.value = ImageSyncProgress(state = ImageSyncState.RUNNING, done = 0, total = total)
+        var done = 0; var failed = 0
+
+        // 1. Uploads
+        toUpload.forEach { recipe ->
+            try {
+                val docId = java.util.Base64.getUrlEncoder().encodeToString(recipe.url.toByteArray())
+                val file = java.io.File(java.net.URI(recipe.thumbnailUrl))
+                if (!file.exists()) { failed++; return@forEach }
+                val bytes = file.readBytes()
+                val ref = storage.reference.child("users/$myUid/recipes/$docId.jpg")
+                ref.putBytes(bytes).await()
+                val downloadUrl = ref.downloadUrl.await().toString()
+                repository.update(recipe.copy(thumbnailUrl = downloadUrl))
+                done++
+                _syncProgress.value = ImageSyncProgress(ImageSyncState.RUNNING, done, total, failed)
+            } catch (e: Exception) {
+                failed++; Log.w(tag, "Upload failed for ${recipe.title}", e)
+                _syncProgress.value = ImageSyncProgress(ImageSyncState.RUNNING, done, total, failed)
+            }
+        }
+
+        // 2. Downloads
+        toDownload.forEach { recipe ->
+            try {
+                val docId = ThumbnailStore.docIdFor(recipe)
+                ThumbnailStore.download(ctx, recipe.thumbnailUrl, docId)
+                done++
+                _syncProgress.value = ImageSyncProgress(ImageSyncState.RUNNING, done, total, failed)
+            } catch (e: Exception) {
+                failed++; Log.w(tag, "Download failed for ${recipe.title}", e)
+                _syncProgress.value = ImageSyncProgress(ImageSyncState.RUNNING, done, total, failed)
+            }
+        }
+
+        _syncProgress.value = ImageSyncProgress(ImageSyncState.DONE, done, total, failed)
+        Log.d(tag, "Image sync complete. $done ok, $failed failed.")
     }
 
     /**
@@ -612,65 +676,17 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val ctx = getApplication<Application>().applicationContext
-                ThumbnailStore.migrateExisting(ctx, dao)
+                val all = dao.getAllRecipesOnce()
+                ThumbnailStore.migrateExisting(ctx, dao, all)
                 Log.d(tag, "Thumbnail migration complete")
-                // Heal Firestore: if any of MY recipes have a local file:// path stored
-                // in Firestore (written before this fix), overwrite with "" so iOS and
-                // other devices no longer receive an unreachable Android-local path.
-                healFirestoreFilePaths(dao)
+                // Start background sync for anything missed
+                syncAllImagesInternal(dao, all)
             } catch (e: Exception) {
                 Log.e(tag, "Error migrating thumbnails", e)
             }
         }
     }
 
-    /**
-     * Migration: for every recipe with a local file:// thumbnail, upload the image
-     * to Firebase Storage and write the real https:// download URL back to both
-     * Room and Firestore so iOS and other clients can load the image.
-     */
-    private suspend fun healFirestoreFilePaths(dao: com.zephron.app.data.RecipeDao) {
-        val myUid = auth.currentUser?.uid ?: return
-        val ctx = getApplication<Application>().applicationContext
-        val toHeal = dao.getAllRecipesOnce().filter { recipe ->
-            recipe.ownerId == myUid && recipe.thumbnailUrl.startsWith("file://")
-        }
-        if (toHeal.isEmpty()) {
-            _syncProgress.value = ImageSyncProgress(state = ImageSyncState.DONE, done = 0, total = 0)
-            return
-        }
-        Log.d(tag, "Uploading ${toHeal.size} local thumbnails to Firebase Storage…")
-        _syncProgress.value = ImageSyncProgress(state = ImageSyncState.RUNNING, done = 0, total = toHeal.size)
-        var done = 0; var failed = 0
-        toHeal.forEach { recipe ->
-            try {
-                val docId = java.util.Base64.getUrlEncoder()
-                    .encodeToString(recipe.url.toByteArray())
-                val file = java.io.File(java.net.URI(recipe.thumbnailUrl))
-                if (!file.exists()) { failed++; return@forEach }
-                val bytes = file.readBytes()
-                val ref = storage.reference.child("users/$myUid/recipes/$docId.jpg")
-                ref.putBytes(bytes).await()
-                val downloadUrl = ref.downloadUrl.await().toString()
-                repository.update(recipe.copy(thumbnailUrl = downloadUrl))
-                done++
-                _syncProgress.value = ImageSyncProgress(
-                    state = ImageSyncState.RUNNING, done = done, total = toHeal.size, failed = failed
-                )
-                Log.d(tag, "Migrated thumbnail for: ${recipe.title}")
-            } catch (e: Exception) {
-                failed++
-                _syncProgress.value = ImageSyncProgress(
-                    state = ImageSyncState.RUNNING, done = done, total = toHeal.size, failed = failed
-                )
-                Log.w(tag, "Storage migration failed for ${recipe.title}: ${e.message}")
-            }
-        }
-        _syncProgress.value = ImageSyncProgress(
-            state = ImageSyncState.DONE, done = done, total = toHeal.size, failed = failed
-        )
-        Log.d(tag, "Storage migration complete. $done ok, $failed failed.")
-    }
 
     /** Undo: bring a swiped recipe back into the deck (removes its swipe record). */
     fun unswipe(recipe: Recipe) {
