@@ -1,73 +1,66 @@
 from firebase_functions import https_fn, scheduler_fn, options
-from firebase_admin import initialize_app, firestore
-import instaloader
+from firebase_admin import initialize_app
+import requests
 import json
 import os
 import base64
-import tempfile
 import time
 
 initialize_app()
 
-SESSION_FILE = "/tmp/session-insta"
-SESSION_MAX_AGE = 7 * 24 * 3600  # 7 days in seconds
+COOKIES_FILE = "/tmp/insta_cookies"
+COOKIES_MAX_AGE = 7 * 24 * 3600
 
-INSTA_USER = os.environ.get("INSTA_USER", "")
-INSTA_PW   = os.environ.get("INSTA_PW", "")
+_cookies: dict = {}
+_cookies_loaded = False
+_cookies_ts = 0.0
 
-L = instaloader.Instaloader()
-_session_loaded = False
+IG_APP_ID = "936619743392459"
 
-def _load_session_from_secret():
-    """Decode INSTA_SESSION_B64 secret into /tmp and load it."""
+def _shortcode_to_id(shortcode: str) -> int:
+    table = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+    n = 0
+    for c in shortcode:
+        n = n * 64 + table.index(c)
+    return n
+
+def _load_cookies_from_secret() -> bool:
     b64 = os.environ.get("INSTA_SESSION_B64", "")
     if not b64:
         return False
     try:
-        data = base64.b64decode(b64)
-        with open(SESSION_FILE, "wb") as f:
-            f.write(data)
-        L.load_session_from_file(INSTA_USER, SESSION_FILE)
-        print("Session loaded from secret.")
+        raw = base64.b64decode(b64)
+        cookie_dict = json.loads(raw)
+        global _cookies, _cookies_loaded, _cookies_ts
+        _cookies = cookie_dict
+        _cookies_loaded = True
+        _cookies_ts = time.time()
+        print("Cookies loaded from secret.")
         return True
     except Exception as e:
-        print(f"Failed to load session from secret: {e}")
+        print(f"Failed to load cookies from secret: {e}")
         return False
 
-def _login_fresh():
-    """Login with username/password and save session to /tmp."""
-    if not INSTA_USER or not INSTA_PW:
-        return False
-    try:
-        L.login(INSTA_USER, INSTA_PW)
-        L.save_session_to_file(SESSION_FILE)
-        print(f"Fresh login successful for {INSTA_USER}.")
-        return True
-    except Exception as e:
-        print(f"Fresh login failed: {e}")
-        return False
+def _cookies_age() -> float:
+    return time.time() - _cookies_ts
 
-def _session_age_seconds():
-    try:
-        return time.time() - os.path.getmtime(SESSION_FILE)
-    except Exception:
-        return float("inf")
+def ensure_cookies() -> bool:
+    global _cookies_loaded
+    if _cookies_loaded and _cookies_age() < COOKIES_MAX_AGE:
+        return True
+    return _load_cookies_from_secret()
 
-def ensure_session():
-    global _session_loaded
-    if _session_loaded and _session_age_seconds() < SESSION_MAX_AGE:
-        return True
-    # Try secret first, fall back to fresh login
-    if _load_session_from_secret():
-        _session_loaded = True
-        return True
-    if _login_fresh():
-        _session_loaded = True
-        return True
-    return False
+def _ig_session() -> requests.Session:
+    s = requests.Session()
+    s.cookies.update(_cookies)
+    s.headers.update({
+        "User-Agent": "Instagram 275.0.0.27.98 Android",
+        "X-IG-App-ID": IG_APP_ID,
+    })
+    return s
 
-# Load session eagerly at cold start
-ensure_session()
+# Load cookies eagerly at cold start
+ensure_cookies()
 
 @https_fn.on_request(
     memory=options.MemoryOption.GB_1,
@@ -92,48 +85,60 @@ def get_insta_recipe(req):
     if not shortcode:
         return https_fn.Response("No shortcode", status=400)
 
-    # Renew session if expired
-    if not ensure_session():
+    if not ensure_cookies():
         return https_fn.Response(
-            json.dumps({"error": "Instagram-Session konnte nicht erneuert werden.", "success": False}),
+            json.dumps({"error": "Instagram-Session konnte nicht geladen werden.", "success": False}),
             status=500, mimetype="application/json")
 
     try:
-        post = instaloader.Post.from_shortcode(L.context, shortcode)
+        media_id = _shortcode_to_id(shortcode)
+        r = _ig_session().get(
+            f"https://www.instagram.com/api/v1/media/{media_id}/info/",
+            timeout=20
+        )
+        if r.status_code == 401:
+            global _cookies_loaded
+            _cookies_loaded = False
+            return https_fn.Response(
+                json.dumps({"error": "Instagram-Session abgelaufen. Bitte später erneut versuchen.", "success": False}),
+                status=500, mimetype="application/json")
+
+        if r.status_code != 200:
+            return https_fn.Response(
+                json.dumps({"error": f"Instagram Fehler {r.status_code}", "success": False}),
+                status=500, mimetype="application/json")
+
+        items = r.json().get("items", [])
+        if not items:
+            return https_fn.Response(
+                json.dumps({"error": "Beitrag nicht gefunden oder privat.", "success": False}),
+                status=404, mimetype="application/json")
+
+        item = items[0]
+        caption_obj = item.get("caption") or {}
+        thumbnail_candidates = item.get("image_versions2", {}).get("candidates", [])
+        video_versions = item.get("video_versions", [])
+
         result = {
-            "author": post.owner_username or "",
-            "description": post.caption or "",
-            "thumbnail_url": post.url or "",
-            "video_url": post.video_url if post.is_video else "",
+            "author": item.get("user", {}).get("username", ""),
+            "description": caption_obj.get("text", "") if isinstance(caption_obj, dict) else "",
+            "thumbnail_url": thumbnail_candidates[0].get("url", "") if thumbnail_candidates else "",
+            "video_url": video_versions[0].get("url", "") if video_versions else "",
             "success": True
         }
         return https_fn.Response(json.dumps(result), mimetype="application/json")
 
     except Exception as e:
-        error_msg = str(e)
-        session_errors = ["401", "login", "NoneType", "not subscriptable", "checkpoint", "Bad credentials", "LoginRequired"]
-        if any(s in error_msg for s in session_errors):
-            global _session_loaded
-            _session_loaded = False
-            user_msg = "Instagram-Session abgelaufen. Bitte später erneut versuchen."
-        elif "not found" in error_msg.lower() or "404" in error_msg:
-            user_msg = "Beitrag nicht gefunden oder privat."
-        else:
-            user_msg = f"Instagram-Fehler: {error_msg}"
-
-        print(f"[ERROR] shortcode={shortcode}: {error_msg}")
+        print(f"[ERROR] shortcode={shortcode}: {e}")
         return https_fn.Response(
-            json.dumps({"error": user_msg, "success": False}),
+            json.dumps({"error": f"Instagram-Fehler: {str(e)}", "success": False}),
             status=500, mimetype="application/json")
 
 
 @scheduler_fn.on_schedule(
-    schedule="every 7 days",
+    schedule="0 3 * * 0",
     secrets=["INSTA_SESSION_B64", "INSTA_USER", "INSTA_PW"]
 )
 def scheduled_insta_refresh(event: scheduler_fn.ScheduledEvent) -> None:
-    """Renews Instagram session every 7 days via Cloud Scheduler."""
-    global _session_loaded
-    _session_loaded = False
-    success = _login_fresh()
-    print(f"Scheduled session renewal: {'OK' if success else 'FAILED'}")
+    """Placeholder — session renewal handled via manual secret update."""
+    print("scheduled_insta_refresh fired. Session renewal via secret update.")
